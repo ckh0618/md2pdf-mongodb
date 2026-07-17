@@ -1,0 +1,35 @@
+{
+  "name": "@md2pdf/renderer",
+  "version": "0.2.0",
+  "description": "Markdown to self-contained HTML and PDF renderer",
+  "type": "module",
+  "bin": {
+    "md-to-pdf": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "test": "npm run build && node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "gray-matter": "^4.0.3",
+    "playwright": "^1.52.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.1",
+    "shiki": "^3.5.0",
+    "unified": "^11.0.5",
+    "rehype-raw": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

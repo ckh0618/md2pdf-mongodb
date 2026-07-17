@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" font-family="'Helvetica Neue', Arial, sans-serif">
+  <rect width="800" height="360" fill="#F4F6F8" rx="12"/>
+  <text x="400" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#001E2B">CQRS Read Path — Contract-Centric Single View</text>
+
+  <!-- Source domains -->
+  <g font-size="12" fill="#001E2B">
+    <rect x="30"  y="80" width="120" height="40" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="90"  y="105" text-anchor="middle">Source: encn</text>
+    <rect x="30"  y="135" width="120" height="40" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="90"  y="160" text-anchor="middle">Source: cust</text>
+    <rect x="30"  y="190" width="120" height="40" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="90"  y="215" text-anchor="middle">Source: bill / svc / prod</text>
+    <rect x="30"  y="245" width="120" height="40" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="90"  y="270" text-anchor="middle">Source: addr / deal</text>
+  </g>
+
+  <!-- ASP / change stream -->
+  <rect x="210" y="140" width="160" height="80" rx="10" fill="#001E2B" stroke="#00ED64" stroke-width="2"/>
+  <text x="290" y="170" text-anchor="middle" fill="#00ED64" font-weight="700">ASP Processor</text>
+  <text x="290" y="190" text-anchor="middle" fill="#FFFFFF">Transform &amp;</text>
+  <text x="290" y="208" text-anchor="middle" fill="#FFFFFF">Embed</text>
+
+  <!-- Read model -->
+  <rect x="440" y="100" width="180" height="160" rx="10" fill="#00684A"/>
+  <text x="530" y="130" text-anchor="middle" fill="#FFFFFF" font-weight="700" font-size="14">Read Model</text>
+  <text x="530" y="155" text-anchor="middle" fill="#E3FCF7" font-size="12">encn_single_view_v1</text>
+  <line x1="460" y1="170" x2="600" y2="170" stroke="#00ED64" stroke-width="1" opacity="0.6"/>
+  <text x="530" y="192" text-anchor="middle" fill="#FFFFFF" font-size="11">SRCH · SORT</text>
+  <text x="530" y="212" text-anchor="middle" fill="#FFFFFF" font-size="11">ELIGIBILITY · JOIN_STATUS</text>
+  <text x="530" y="232" text-anchor="middle" fill="#FFFFFF" font-size="11">Embedded domains</text>
+
+  <!-- Query API -->
+  <rect x="690" y="140" width="90" height="80" rx="8" fill="#E3FCF7" stroke="#00ED64" stroke-width="2"/>
+  <text x="735" y="172" text-anchor="middle" font-size="12" fill="#00684A" font-weight="700">NUCR</text>
+  <text x="735" y="192" text-anchor="middle" font-size="12" fill="#00684A" font-weight="700">Query API</text>
+
+  <!-- arrows -->
+  <path d="M150 160 L205 165" stroke="#FFB81C" stroke-width="2" marker-end="url(#a2)"/>
+  <path d="M150 185 L205 185" stroke="#FFB81C" stroke-width="2" marker-end="url(#a2)"/>
+  <path d="M150 210 L205 205" stroke="#FFB81C" stroke-width="2" marker-end="url(#a2)"/>
+  <path d="M150 265 L205 200" stroke="#FFB81C" stroke-width="2" marker-end="url(#a2)"/>
+  <path d="M370 180 L435 180" stroke="#00ED64" stroke-width="3" marker-end="url(#a2)"/>
+  <path d="M620 180 L685 180" stroke="#00ED64" stroke-width="3" marker-end="url(#a2)"/>
+
+  <text x="395" y="165" text-anchor="middle" font-size="10" fill="#525F6B">eventual consistency</text>
+  <text x="655" y="165" text-anchor="middle" font-size="10" fill="#525F6B">find() + sort</text>
+
+  <defs>
+    <marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#00ED64"/>
+    </marker>
+  </defs>
+</svg>

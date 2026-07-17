@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" font-family="'Helvetica Neue', Arial, sans-serif">
+  <rect width="800" height="460" fill="#F4F6F8" rx="12"/>
+  <text x="400" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#001E2B">Document Responsibility Boundaries</text>
+
+  <!-- Root container -->
+  <rect x="40" y="60" width="720" height="380" rx="12" fill="#FFFFFF" stroke="#00684A" stroke-width="2"/>
+  <rect x="40" y="60" width="720" height="36" rx="12" fill="#001E2B"/>
+  <text x="400" y="83" text-anchor="middle" fill="#00ED64" font-weight="700" font-size="14">encn_single_view_v1</text>
+
+  <!-- Root fields -->
+  <g font-size="11" fill="#001E2B">
+    <rect x="60" y="110" width="180" height="28" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="150" y="128" text-anchor="middle">Root: ENCN_ID, ENTR_ID, SVC_CD</text>
+    <rect x="260" y="110" width="170" height="28" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="345" y="128" text-anchor="middle">ENCN_STUS_CD, INTG_MRKT_ID</text>
+    <rect x="450" y="110" width="140" height="28" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="520" y="128" text-anchor="middle">ENTR_RCGN_NO2</text>
+  </g>
+
+  <!-- Embedded domains row -->
+  <g font-size="11" fill="#001E2B">
+    <rect x="60"  y="160" width="130" height="70" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="125" y="182" text-anchor="middle" font-weight="600">HLDR_CUST</text>
+    <text x="125" y="200" text-anchor="middle">CUST_ID, CUST_NM</text>
+    <text x="125" y="216" text-anchor="middle">UPID_LIST</text>
+
+    <rect x="200" y="160" width="120" height="70" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="260" y="182" text-anchor="middle" font-weight="600">BILL_ACNT</text>
+    <text x="260" y="200" text-anchor="middle">billing fields</text>
+
+    <rect x="330" y="160" width="120" height="70" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="390" y="182" text-anchor="middle" font-weight="600">SERVICE</text>
+    <text x="390" y="200" text-anchor="middle">PRODUCT</text>
+    <text x="390" y="216" text-anchor="middle">DEAL</text>
+
+    <rect x="460" y="160" width="120" height="70" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="520" y="182" text-anchor="middle" font-weight="600">ESTB_ADDR</text>
+    <text x="520" y="200" text-anchor="middle">normalized addr</text>
+
+    <rect x="590" y="160" width="150" height="70" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="665" y="182" text-anchor="middle" font-weight="600">Bounded Arrays</text>
+    <text x="665" y="200" text-anchor="middle">CNVG, IPTV_MSVC</text>
+  </g>
+
+  <!-- Query-optimization row -->
+  <g font-size="11" fill="#001E2B">
+    <rect x="60"  y="260" width="220" height="60" rx="6" fill="#001E2B"/>
+    <text x="170" y="283" text-anchor="middle" fill="#00ED64" font-weight="700">SRCH</text>
+    <text x="170" y="302" text-anchor="middle" fill="#FFFFFF">[{ k, v }] search boundary</text>
+
+    <rect x="290" y="260" width="160" height="60" rx="6" fill="#00684A"/>
+    <text x="370" y="283" text-anchor="middle" fill="#FFFFFF" font-weight="700">SORT</text>
+    <text x="370" y="302" text-anchor="middle" fill="#FFFFFF">scalar sort keys</text>
+
+    <rect x="460" y="260" width="140" height="60" rx="6" fill="#016BF8"/>
+    <text x="530" y="283" text-anchor="middle" fill="#FFFFFF" font-weight="700">ELIGIBILITY</text>
+    <text x="530" y="302" text-anchor="middle" fill="#FFFFFF">business filters</text>
+
+    <rect x="610" y="260" width="130" height="60" rx="6" fill="#525F6B"/>
+    <text x="675" y="283" text-anchor="middle" fill="#FFFFFF" font-weight="700">JOIN_STATUS</text>
+    <text x="675" y="302" text-anchor="middle" fill="#FFFFFF">INNER JOIN preserve</text>
+  </g>
+
+  <!-- Legend -->
+  <text x="60"  y="360" font-size="11" fill="#001E2B" font-weight="600">Responsibility separation:</text>
+  <rect x="60"  y="375" width="14" height="14" rx="3" fill="#E3FCF7" stroke="#00ED64"/><text x="82" y="387" font-size="11" fill="#001E2B">Root identity &amp; residual filters</text>
+  <rect x="280" y="375" width="14" height="14" rx="3" fill="#FFF6E6" stroke="#FFB81C"/><text x="302" y="387" font-size="11" fill="#001E2B">Embedded display data</text>
+  <rect x="470" y="375" width="14" height="14" rx="3" fill="#001E2B"/><text x="492" y="387" font-size="11" fill="#001E2B">Query-optimization fields</text>
+  <text x="60"  y="415" font-size="10" fill="#525F6B">Display data and search/sort data are explicitly separated for clear responsibility boundaries.</text>
+</svg>

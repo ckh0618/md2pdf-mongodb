@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" font-family="'Helvetica Neue', Arial, sans-serif">
+  <rect width="800" height="340" fill="#F4F6F8" rx="12"/>
+  <text x="400" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#001E2B">Heterogeneous Search Criteria → Shared SRCH Model</text>
+
+  <!-- Left: heterogeneous inputs -->
+  <g font-size="12" fill="#001E2B">
+    <rect x="30" y="70"  width="150" height="34" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="105" y="92" text-anchor="middle">ENCN_ID</text>
+    <rect x="30" y="114" width="150" height="34" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="105" y="136" text-anchor="middle">ENTR_ID</text>
+    <rect x="30" y="158" width="150" height="34" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="105" y="180" text-anchor="middle">TLNO / LNID</text>
+    <rect x="30" y="202" width="150" height="34" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="105" y="224" text-anchor="middle">TRMN (model+no)</text>
+    <rect x="30" y="246" width="150" height="34" rx="6" fill="#FFF6E6" stroke="#FFB81C"/>
+    <text x="105" y="268" text-anchor="middle">CUNM / BDAY / ADDR</text>
+  </g>
+  <text x="105" y="300" text-anchor="middle" font-size="11" fill="#525F6B">13+ selectCriteria</text>
+
+  <!-- Right: SRCH array -->
+  <rect x="430" y="80" width="340" height="200" rx="10" fill="#00684A"/>
+  <text x="600" y="108" text-anchor="middle" fill="#FFFFFF" font-weight="700" font-size="14">SRCH: [{ k, v }]</text>
+  <line x1="450" y1="118" x2="750" y2="118" stroke="#00ED64" opacity="0.5"/>
+  <g font-size="12" fill="#001E2B">
+    <rect x="460" y="135" width="290" height="30" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="475" y="155">{ k: "ENCN", v: "..." }</text>
+    <rect x="460" y="175" width="290" height="30" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="475" y="195">{ k: "TRMN", v: "model|no" }</text>
+    <rect x="460" y="215" width="290" height="30" rx="5" fill="#E3FCF7" stroke="#00ED64"/>
+    <text x="475" y="235">{ k: "CUNM_ADDR", v: "nm|bd|addr" }</text>
+  </g>
+  <text x="600" y="275" text-anchor="middle" font-size="11" fill="#E3FCF7">$elemMatch { k, v } on same element</text>
+
+  <!-- converging arrows -->
+  <path d="M180 87  C 300 87, 340 155, 455 150" stroke="#FFB81C" stroke-width="1.5" fill="none" marker-end="url(#a3)"/>
+  <path d="M180 131  C 300 131, 360 190, 455 190" stroke="#FFB81C" stroke-width="1.5" fill="none" marker-end="url(#a3)"/>
+  <path d="M180 263  C 300 263, 360 235, 455 230" stroke="#FFB81C" stroke-width="1.5" fill="none" marker-end="url(#a3)"/>
+
+  <defs>
+    <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#FFB81C"/>
+    </marker>
+  </defs>
+</svg>
