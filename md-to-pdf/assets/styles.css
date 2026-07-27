@@ -586,6 +586,9 @@ p > img {
   margin-bottom: 48px;
   height: 40px;
   width: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .cover-logo-placeholder {

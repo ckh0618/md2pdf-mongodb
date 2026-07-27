@@ -6,7 +6,12 @@ import { fileURLToPath } from 'node:url';
 import type { DocumentMeta, PdfStage } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const LOGO_PATH = resolve(__dirname, '../assets/mongodb-logo.svg');
+// Official MongoDB brand asset (leaf + wordmark) from
+// https://www.mongodb.com/company/newsroom/brand-resources. The slate-blue
+// variant is used here because the print header sits on a white page
+// background; the cover page uses the white variant instead (see
+// template.ts), since its background is dark.
+const LOGO_PATH = resolve(__dirname, '../assets/mongodb-logo-slate-blue.svg');
 
 function escapeHtml(value: string): string {
   return value

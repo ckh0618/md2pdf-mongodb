@@ -1,5 +1,24 @@
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { DocumentMeta, Participant, TocItem } from './types.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+// Official MongoDB brand assets (leaf + wordmark), downloaded from
+// https://www.mongodb.com/company/newsroom/brand-resources. The white variant
+// is used on the cover page, which has a dark background; the slate-blue
+// variant is used in the print header on body pages, which have a white
+// background (see pdf.ts).
+const COVER_LOGO_PATH = resolve(__dirname, '../assets/mongodb-logo-white.svg');
+
+function coverLogoDataUri(): string {
+  try {
+    const svg = readFileSync(COVER_LOGO_PATH, 'utf-8');
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -70,12 +89,14 @@ function renderCover(meta: DocumentMeta): string {
   const date = `<p class="cover-date"><strong>Date:</strong> ${escapeHtml(meta.date)}</p>`;
   const participants = renderParticipants(meta);
   const classification = `<div class="cover-classification"><span class="cover-classification-badge confidential">${escapeHtml(meta.classification)}</span></div>`;
+  const logoUri = coverLogoDataUri();
+  const brand = logoUri
+    ? `<img class="cover-logo" src="${logoUri}" alt="${escapeHtml(meta.brand)}" />`
+    : `<div class="cover-brand" aria-label="${escapeHtml(meta.brand)}"><span>${escapeHtml(meta.brand)}</span></div>`;
 
   return `<section class="cover-page" aria-label="Document cover">
   ${stage}
-  <div class="cover-brand" aria-label="${escapeHtml(meta.brand)}">
-    <span>${escapeHtml(meta.brand)}</span>
-  </div>
+  ${brand}
   <div class="cover-accent"></div>
   <h1 class="cover-title">${escapeHtml(meta.title)}</h1>
   ${subtitle}

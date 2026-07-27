@@ -77,10 +77,10 @@
   --font-size-body:       10.5pt;
   --font-size-small:      9pt;
   --font-size-xsmall:     8pt;
-  --font-size-h1:         24pt;
-  --font-size-h2:         18pt;
-  --font-size-h3:         14pt;
-  --font-size-h4:         12pt;
+  --font-size-h1:         18pt;
+  --font-size-h2:         14pt;
+  --font-size-h3:         12pt;
+  --font-size-h4:         11pt;
 
   /* Font families */
   --font-body:    "Pretendard Variable", Pretendard, Inter, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -139,12 +139,15 @@ h1 {
   margin-top: 0;
   padding-bottom: var(--space-sm);
   border-bottom: 2px solid var(--color-brand-accessible);
+  page-break-before: always;
+  break-before: page;
 }
 
 /* First h1 on the main content must not force a new page */
 body > h1:first-of-type,
 .content > h1:first-of-type,
-article > h1:first-of-type {
+article > h1:first-of-type,
+main > h1:first-of-type {
   page-break-before: avoid;
   break-before: avoid;
 }
@@ -589,6 +592,9 @@ p > img {
   margin-bottom: 48px;
   height: 40px;
   width: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .cover-logo-placeholder {
@@ -661,6 +667,8 @@ p > img {
   padding-bottom: 0;
   page-break-before: avoid;
   break-before: avoid;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .cover-subtitle {
@@ -841,11 +849,28 @@ p > img {
   font-size: var(--font-size-h2);
   font-weight: 700;
   color: var(--color-text-primary);
-  margin-bottom: var(--space-md);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  position: relative;
   page-break-before: avoid;
   break-before: avoid;
+}
+
+/* Decorative accent rule under the TOC title, echoing the cover page accent */
+.toc-title {
+  border-bottom: none;
+}
+
+.toc-title::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 64px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-brand-decorative) 0%, var(--color-brand-accessible) 100%);
 }
 
 .toc ul,
@@ -860,30 +885,47 @@ p > img {
   line-height: 1.55;
 }
 
+/* Level 1 (chapters): generous spacing + top rule so each chapter reads as
+   its own row in an index, not just another line of text. */
 .toc > ul > li {
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--font-size-body);
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.toc > ul > li:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 /* Level 2 */
 .toc > ul > li > ul {
   padding-left: var(--space-lg);
+  margin-top: 4px;
+  border-left: 2px solid var(--color-border);
 }
 
 .toc > ul > li > ul > li {
-  font-weight: 300;
+  font-weight: 400;
   font-size: var(--font-size-small);
   color: var(--color-text-secondary);
+  padding-left: var(--space-sm);
 }
 
 /* Level 3 */
 .toc > ul > li > ul > li > ul {
   padding-left: var(--space-md);
+  border-left: 2px solid var(--color-border);
 }
 
 .toc > ul > li > ul > li > ul > li {
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
+  font-style: italic;
+  padding-left: var(--space-sm);
 }
 
 /* TOC entry with dotted leader */
@@ -900,6 +942,41 @@ p > img {
   padding-right: 4px;
   background-color: var(--color-bg-page);
   position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Chapter-number badge — pill chip in the brand accent, only rendered for
+   headings that start with a manual number (e.g. "1", "5.3.1"). */
+.toc-num {
+  display: inline-block;
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.8em;
+  line-height: 1.6;
+  padding: 0 8px;
+  border-radius: 999px;
+  background-color: var(--color-mist, #E3FCF7);
+  color: var(--color-brand-accessible);
+  border: 1px solid #B8E7D6;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.toc > ul > li > ul .toc-num,
+.toc > ul > li > ul > li > ul .toc-num {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+  font-weight: 600;
+}
+
+.toc-label {
+  white-space: nowrap;
 }
 
 .toc-entry::after {
@@ -907,6 +984,10 @@ p > img {
   letter-spacing: 1px;
   color: var(--color-border);
   font-size: 0.85em;
+}
+
+.toc > ul > li > .toc-entry::after {
+  color: #B8E7D6;
 }
 
 .toc-entry .toc-page {
@@ -1443,19 +1524,17 @@ li.task-list-item::before {
 <body>
   <section class="cover-page" aria-label="Document cover">
   
-  <div class="cover-brand" aria-label="MongoDB">
-    <span>MongoDB</span>
-  </div>
+  <img class="cover-logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAyIiBoZWlnaHQ9IjI3OCIgdmlld0JveD0iMCAwIDExMDIgMjc4IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTgyLjMyMjkgMjguNjQ0NEM3MS41MzY3IDE1Ljg0NjkgNjIuMjQ4NSAyLjg0OTQ1IDYwLjM1MSAwLjE0OTk3MUM2MC4xNTEyIC0wLjA0OTk5MDMgNTkuODUxNSAtMC4wNDk5OTAzIDU5LjY1MTggMC4xNDk5NzFDNTcuNzU0MiAyLjg0OTQ1IDQ4LjQ2NjEgMTUuODQ2OSAzNy42Nzk4IDI4LjY0NDRDLTU0LjkwMTkgMTQ2LjcyMSA1Mi4yNjEzIDIyNi40MDYgNTIuMjYxMyAyMjYuNDA2TDUzLjE2MDEgMjI3LjAwNkM1My45NTkgMjM5LjMwMyA1NS45NTY1IDI1NyA1NS45NTY1IDI1N0g1OS45NTE0SDYzLjk0NjNDNjMuOTQ2MyAyNTcgNjUuOTQzOCAyMzkuNDAzIDY2Ljc0MjggMjI3LjAwNkw2Ny42NDE2IDIyNi4zMDZDNjcuNzQxNCAyMjYuMzA2IDE3NC45MDUgMTQ2LjcyMSA4Mi4zMjI5IDI4LjY0NDRaTTU5Ljk1MTQgMjI0LjYwNkM1OS45NTE0IDIyNC42MDYgNTUuMTU3NiAyMjAuNTA3IDUzLjg1OTIgMjE4LjQwN1YyMTguMjA4TDU5LjY1MTggODkuNjMyNUM1OS42NTE4IDg5LjIzMjYgNjAuMjUxMSA4OS4yMzI2IDYwLjI1MTEgODkuNjMyNUw2Ni4wNDM2IDIxOC4yMDhWMjE4LjQwN0M2NC43NDUzIDIyMC41MDcgNTkuOTUxNCAyMjQuNjA2IDU5Ljk1MTQgMjI0LjYwNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNjAuNTAxIDE5Ny41ODhMMjE1Ljg0NSA4OS4yOTkxTDIxNS43NDUgODlIMTgxLjAwMVY5Ni4yNzkxSDE4Ni42MDhDMTg4LjMxIDk2LjI3OTEgMTg5LjkxMiA5Ni45NzcgMTkxLjExNCA5OC4xNzM2QzE5Mi4zMTUgOTkuMzcwMiAxOTIuOTE2IDEwMC45NjYgMTkyLjkxNiAxMDIuNjYxTDE5MS45MTUgMjExLjY0N0MxOTEuOTE1IDIxNS4wMzcgMTg5LjExMiAyMTcuODI5IDE4NS43MDcgMjE3LjkyOUwxODAgMjE4LjAyOVYyMjUuMjA4SDIxMy44NDNWMjE4LjAyOUwyMTAuMzM4IDIxNy45MjlDMjA2LjkzNCAyMTcuODI5IDIwNC4xMyAyMTUuMDM3IDIwNC4xMyAyMTEuNjQ3VjEwOC45NDNMMjUyLjc5MiAyMjUuMjA4QzI1My40OTIgMjI2LjkwMyAyNTUuMDk0IDIyOCAyNTYuODk3IDIyOEMyNTguNjk5IDIyOCAyNjAuMzAxIDIyNi45MDMgMjYxLjAwMiAyMjUuMjA4TDMwOC41NjIgMTExLjUzNUwzMDkuMjYzIDIxMS42NDdDMzA5LjI2MyAyMTUuMTM3IDMwNi40NTkgMjE3LjkyOSAzMDIuOTU1IDIxOC4wMjlIMjk5LjM1VjIyNS4yMDhIMzM5VjIxOC4wMjlIMzMzLjU5M0MzMzAuMTg5IDIxOC4wMjkgMzI3LjM4NSAyMTUuMTM3IDMyNy4yODUgMjExLjc0N0wzMjYuOTg1IDEwMi43NkMzMjYuOTg1IDk5LjI3MDQgMzI5Ljc4OCA5Ni40Nzg1IDMzMy4xOTMgOTYuMzc4OEwzMzkgOTYuMjc5MVY4OUgzMDUuMTU3TDI2MC41MDEgMTk3LjU4OFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik01NzEuODY5IDIxNi45NTVDNTcwLjc2NCAyMTUuODQ5IDU3MC4xNjIgMjE0LjM0MiA1NzAuMTYyIDIxMi41MzNWMTU4LjY2M0M1NzAuMTYyIDE0OC40MTIgNTY3LjE1MSAxNDAuMzcyIDU2MS4xMjcgMTM0LjY0M0M1NTUuMjA1IDEyOC45MTUgNTQ2Ljk3MyAxMjYgNTM2LjczNCAxMjZDNTIyLjM3OCAxMjYgNTExLjAzNSAxMzEuODI5IDUwMy4xMDQgMTQzLjI4NkM1MDMuMDA0IDE0My40ODcgNTAyLjcwMyAxNDMuNTg4IDUwMi40MDIgMTQzLjU4OEM1MDIuMSAxNDMuNTg4IDUwMS45IDE0My4zODcgNTAxLjkgMTQzLjA4NUw0OTguMTg1IDEyOC43MTRINDkxLjk2MUw0NzYgMTM3Ljg1OVYxNDIuODg0SDQ4MC4xMTZDNDgyLjAyMyAxNDIuODg0IDQ4My42MjkgMTQzLjM4NyA0ODQuNzM0IDE0NC4zOTJDNDg1LjgzOCAxNDUuMzk3IDQ4Ni40NCAxNDYuOTA1IDQ4Ni40NCAxNDkuMDE1VjIxMi40MzJDNDg2LjQ0IDIxNC4yNDEgNDg1LjgzOCAyMTUuNzQ5IDQ4NC43MzQgMjE2Ljg1NEM0ODMuNjI5IDIxNy45NiA0ODIuMTI0IDIxOC41NjMgNDgwLjMxNyAyMTguNTYzSDQ3Ni4zMDFWMjI1Ljg5OUg1MTMuMDQyVjIxOC41NjNINTA5LjAyN0M1MDcuMjIgMjE4LjU2MyA1MDUuNzE0IDIxNy45NiA1MDQuNjEgMjE2Ljg1NEM1MDMuNTA2IDIxNS43NDkgNTAyLjkwMyAyMTQuMjQxIDUwMi45MDMgMjEyLjQzMlYxNzAuNjIzQzUwMi45MDMgMTY1LjI5NiA1MDQuMTA4IDE1OS45NyA1MDYuMzE3IDE1NC43NDRDNTA4LjYyNSAxNDkuNjE4IDUxMi4wMzggMTQ1LjI5NiA1MTYuNTU2IDE0MS45OEM1MjEuMDczIDEzOC42NjMgNTI2LjQ5NCAxMzcuMDU1IDUzMi43MTggMTM3LjA1NUM1MzkuNzQ1IDEzNy4wNTUgNTQ1LjA2NiAxMzkuMjY2IDU0OC4zNzggMTQzLjY4OEM1NTEuNjkxIDE0OC4xMTEgNTUzLjM5OCAxNTMuODM5IDU1My4zOTggMTYwLjY3M1YyMTIuNTMzQzU1My4zOTggMjE0LjM0MiA1NTIuNzk1IDIxNS44NDkgNTUxLjY5MSAyMTYuOTU1QzU1MC41ODcgMjE4LjA2IDU0OS4wODEgMjE4LjY2MyA1NDcuMjc0IDIxOC42NjNINTQzLjI1OVYyMjZINTgwVjIxOC42NjNINTc1Ljk4NUM1NzQuNDc5IDIxOC42NjMgNTczLjA3MyAyMTguMTYxIDU3MS44NjkgMjE2Ljk1NVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik05MDcuNTQ2IDk3LjIxMkM4OTcuMzkgOTEuODA0MSA4ODYuMDM5IDg5IDg3My43OTIgODlIODI2Vjk2LjMxMDdIODMwLjY4QzgzMi40NzIgOTYuMzEwNyA4MzQuMDY1IDk3LjAxMTcgODM1LjY1OCA5OC42MTRDODM3LjE1MiAxMDAuMTE2IDgzNy45NDggMTAxLjgxOSA4MzcuOTQ4IDEwMy42MjFWMjExLjM3OUM4MzcuOTQ4IDIxMy4xODEgODM3LjE1MiAyMTQuODg0IDgzNS42NTggMjE2LjM4NkM4MzQuMTY1IDIxNy44ODggODMyLjQ3MiAyMTguNjg5IDgzMC42OCAyMTguNjg5SDgyNlYyMjZIODczLjc5MkM4ODYuMDM5IDIyNiA4OTcuMzkgMjIzLjE5NiA5MDcuNTQ2IDIxNy43ODhDOTE3LjcwMSAyMTIuMzggOTI1Ljk2NiAyMDQuMzY4IDkzMS45NCAxOTQuMTU0QzkzNy45MTQgMTgzLjkzOSA5NDEgMTcxLjYyMSA5NDEgMTU3LjZDOTQxIDE0My41OCA5MzcuOTE0IDEzMS4zNjIgOTMxLjk0IDEyMS4wNDdDOTI1Ljg2NiAxMTAuNjMyIDkxNy43MDEgMTAyLjYyIDkwNy41NDYgOTcuMjEyWk05MjEuNzg0IDE1Ny40QzkyMS43ODQgMTcwLjIxOSA5MTkuNDk0IDE4MS4wMzQgOTE1LjAxMyAxODkuNzQ3QzkxMC41MzMgMTk4LjQ2IDkwNC41NTggMjA0Ljk2OSA4OTcuMTkgMjA5LjE3NUM4ODkuODIzIDIxMy4zODIgODgxLjY1OCAyMTUuNDg1IDg3Mi44OTYgMjE1LjQ4NUg4NjMuMjM4Qzg2MS40NDYgMjE1LjQ4NSA4NTkuODUzIDIxNC43ODQgODU4LjI2IDIxMy4xODFDODU2Ljc2NiAyMTEuNjc5IDg1NS45NyAyMDkuOTc3IDg1NS45NyAyMDguMTc0VjEwNi42MjZDODU1Ljk3IDEwNC44MjMgODU2LjY2NyAxMDMuMjIxIDg1OC4yNiAxMDEuNjE4Qzg1OS43NTMgMTAwLjExNiA4NjEuNDQ2IDk5LjMxNTEgODYzLjIzOCA5OS4zMTUxSDg3Mi44OTZDODgxLjY1OCA5OS4zMTUxIDg4OS44MjMgMTAxLjQxOCA4OTcuMTkgMTA1LjYyNEM5MDQuNTU4IDEwOS44MyA5MTAuNTMzIDExNi4zNCA5MTUuMDEzIDEyNS4wNTNDOTE5LjQ5NCAxMzMuNzY1IDkyMS43ODQgMTQ0LjU4MSA5MjEuNzg0IDE1Ny40WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEwNTMuOTcgMTY0LjcxMUMxMDQ5LjU1IDE1OS42MDMgMTA0MS4wMiAxNTUuMjk3IDEwMzAuOTkgMTUyLjk5M0MxMDQ0Ljg0IDE0Ni4wODMgMTA1MS45NiAxMzYuMzY5IDEwNTEuOTYgMTIzLjg1MUMxMDUxLjk2IDExNy4wNDEgMTA1MC4xNiAxMTAuOTMyIDEwNDYuNTQgMTA1LjcyNEMxMDQyLjkzIDEwMC41MTcgMTAzNy44MSA5Ni4zMTA3IDEwMzEuMjkgOTMuNDA2NEMxMDI0Ljc2IDkwLjUwMjIgMTAxNy4xMyA4OSAxMDA4LjUgODlIOTU0LjQwMlY5Ni4zMTA3SDk1OC43MThDOTYwLjUyNCA5Ni4zMTA3IDk2Mi4xMyA5Ny4wMTE3IDk2My43MzYgOTguNjE0Qzk2NS4yNDIgMTAwLjExNiA5NjYuMDQ1IDEwMS44MTkgOTY2LjA0NSAxMDMuNjIxVjIxMS4zNzlDOTY2LjA0NSAyMTMuMTgxIDk2NS4yNDIgMjE0Ljg4NCA5NjMuNzM2IDIxNi4zODZDOTYyLjIzMSAyMTcuODg4IDk2MC41MjQgMjE4LjY4OSA5NTguNzE4IDIxOC42ODlIOTU0VjIyNkgxMDEyLjcyQzEwMjEuNjUgMjI2IDEwMjkuOTggMjI0LjQ5OCAxMDM3LjUxIDIyMS40OTNDMTA0NS4wNCAyMTguNDg5IDEwNTEuMDYgMjE0LjA4MyAxMDU1LjM4IDIwOC4yNzRDMTA1OS43OSAyMDIuNDY2IDEwNjIgMTk1LjM1NSAxMDYyIDE4Ny4xNDNDMTA2MS45IDE3OC4zMyAxMDU5LjI5IDE3MC45MiAxMDUzLjk3IDE2NC43MTFaTTk4Ni42MjEgMjEzLjI4MUM5ODUuMTE1IDIxMS43NzkgOTg0LjMxMiAyMTAuMDc3IDk4NC4zMTIgMjA4LjI3NFYxNTkuOTA0SDEwMTIuMjJDMTAyMi4wNSAxNTkuOTA0IDEwMjkuNTggMTYyLjQwNyAxMDM0LjggMTY3LjQxNEMxMDQwLjAyIDE3Mi40MjIgMTA0Mi42MyAxNzguOTMxIDEwNDIuNjMgMTg2Ljk0M0MxMDQyLjYzIDE5MS43NSAxMDQxLjQyIDE5Ni40NTcgMTAzOS4yMiAyMDAuNzYzQzEwMzYuOTEgMjA1LjE3IDEwMzMuNDkgMjA4LjY3NSAxMDI4Ljg4IDIxMS4zNzlDMTAyNC4zNiAyMTQuMDgzIDEwMTguNzQgMjE1LjQ4NSAxMDEyLjIyIDIxNS40ODVIOTkxLjYzOUM5ODkuODMzIDIxNS41ODUgOTg4LjIyNyAyMTQuODg0IDk4Ni42MjEgMjEzLjI4MVpNOTg0LjQxMyAxNDkuNTg4VjEwNi42MjZDOTg0LjQxMyAxMDQuODIzIDk4NS4xMTUgMTAzLjIyMSA5ODYuNzIxIDEwMS42MThDOTg4LjIyNyAxMDAuMTE2IDk4OS45MzMgOTkuMzE1MSA5OTEuNzQgOTkuMzE1MUgxMDA0Ljk5QzEwMTQuNTIgOTkuMzE1MSAxMDIxLjU1IDEwMS43MTkgMTAyNS45NyAxMDYuMzI1QzEwMzAuMzggMTExLjAzMiAxMDMyLjU5IDExNy4wNDEgMTAzMi41OSAxMjQuNDUyQzEwMzIuNTkgMTMyLjA2MyAxMDMwLjQ4IDEzOC4xNzIgMTAyNi4zNyAxNDIuNzc5QzEwMjIuMjUgMTQ3LjI4NSAxMDE2LjAzIDE0OS41ODggMTAwNy44IDE0OS41ODhIOTg0LjQxM1oiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik00MzEuOTk5IDEzMi4zODdDNDI0LjMyOSAxMjguMTk2IDQxNS43NjMgMTI2IDQwNi41IDEyNkMzOTcuMjM3IDEyNiAzODguNTcxIDEyOC4wOTYgMzgxLjAwMSAxMzIuMzg3QzM3My4zMzEgMTM2LjU3OSAzNjcuMjU1IDE0Mi42NjcgMzYyLjc3MyAxNTAuMzUyQzM1OC4yOTEgMTU4LjAzNyAzNTYgMTY3LjAyIDM1NiAxNzdDMzU2IDE4Ni45OCAzNTguMjkxIDE5NS45NjMgMzYyLjc3MyAyMDMuNjQ4QzM2Ny4yNTUgMjExLjMzMyAzNzMuMzMxIDIxNy40MjEgMzgxLjAwMSAyMjEuNjEzQzM4OC42NzEgMjI1LjgwNCAzOTcuMjM3IDIyOCA0MDYuNSAyMjhDNDE1Ljc2MyAyMjggNDI0LjQyOSAyMjUuOTA0IDQzMS45OTkgMjIxLjYxM0M0MzkuNjY5IDIxNy40MjEgNDQ1Ljc0NSAyMTEuMzMzIDQ1MC4yMjcgMjAzLjY0OEM0NTQuNzA5IDE5NS45NjMgNDU3IDE4Ni45OCA0NTcgMTc3QzQ1NyAxNjcuMDIgNDU0LjcwOSAxNTguMDM3IDQ1MC4yMjcgMTUwLjM1MkM0NDUuNzQ1IDE0Mi41NjggNDM5LjY2OSAxMzYuNTc5IDQzMS45OTkgMTMyLjM4N1pNNDM5LjM3IDE3N0M0MzkuMzcgMTg5LjI3NiA0MzYuMzgyIDE5OS4yNTYgNDMwLjQwNSAyMDYuNDQyQzQyNC41MjkgMjEzLjYyOCA0MTYuNDYxIDIxNy4zMjEgNDA2LjUgMjE3LjMyMUMzOTYuNTQgMjE3LjMyMSAzODguNDcxIDIxMy42MjggMzgyLjU5NSAyMDYuNDQyQzM3Ni42MTggMTk5LjI1NiAzNzMuNjMgMTg5LjI3NiAzNzMuNjMgMTc3QzM3My42MyAxNjQuNzI0IDM3Ni42MTggMTU0Ljc0NCAzODIuNTk1IDE0Ny41NThDMzg4LjQ3MSAxNDAuMzcyIDM5Ni41NCAxMzYuNjc5IDQwNi41IDEzNi42NzlDNDE2LjQ2MSAxMzYuNjc5IDQyNC41MjkgMTQwLjM3MiA0MzAuNDA1IDE0Ny41NThDNDM2LjM4MiAxNTQuNzQ0IDQzOS4zNyAxNjQuNjI0IDQzOS4zNyAxNzdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNzg0Ljk5OSAxMzIuMzg3Qzc3Ny4zMjkgMTI4LjE5NiA3NjguNzYzIDEyNiA3NTkuNSAxMjZDNzUwLjIzNyAxMjYgNzQxLjU3MSAxMjguMDk2IDczNC4wMDEgMTMyLjM4N0M3MjYuMzMxIDEzNi41NzkgNzIwLjI1NSAxNDIuNjY3IDcxNS43NzMgMTUwLjM1MkM3MTEuMjkxIDE1OC4wMzcgNzA5IDE2Ny4wMiA3MDkgMTc3QzcwOSAxODYuOTggNzExLjI5MSAxOTUuOTYzIDcxNS43NzMgMjAzLjY0OEM3MjAuMjU1IDIxMS4zMzMgNzI2LjMzMSAyMTcuNDIxIDczNC4wMDEgMjIxLjYxM0M3NDEuNjcxIDIyNS44MDQgNzUwLjIzNyAyMjggNzU5LjUgMjI4Qzc2OC43NjMgMjI4IDc3Ny40MjkgMjI1LjkwNCA3ODQuOTk5IDIyMS42MTNDNzkyLjY2OSAyMTcuNDIxIDc5OC43NDUgMjExLjMzMyA4MDMuMjI3IDIwMy42NDhDODA3LjcwOSAxOTUuOTYzIDgxMCAxODYuOTggODEwIDE3N0M4MTAgMTY3LjAyIDgwNy43MDkgMTU4LjAzNyA4MDMuMjI3IDE1MC4zNTJDNzk4Ljc0NSAxNDIuNTY4IDc5Mi41NjkgMTM2LjU3OSA3ODQuOTk5IDEzMi4zODdaTTc5Mi4zNyAxNzdDNzkyLjM3IDE4OS4yNzYgNzg5LjM4MSAxOTkuMjU2IDc4My40MDUgMjA2LjQ0MkM3NzcuNTI4IDIxMy42MjggNzY5LjQ2IDIxNy4zMjEgNzU5LjUgMjE3LjMyMUM3NDkuNTM5IDIxNy4zMjEgNzQxLjQ3MSAyMTMuNjI4IDczNS41OTUgMjA2LjQ0MkM3MjkuNjE4IDE5OS4yNTYgNzI2LjYzIDE4OS4yNzYgNzI2LjYzIDE3N0M3MjYuNjMgMTY0LjYyNCA3MjkuNjE4IDE1NC43NDQgNzM1LjU5NSAxNDcuNTU4Qzc0MS40NzEgMTQwLjM3MiA3NDkuNTM5IDEzNi42NzkgNzU5LjUgMTM2LjY3OUM3NjkuNDYgMTM2LjY3OSA3NzcuNTI4IDE0MC4zNzIgNzgzLjQwNSAxNDcuNTU4Qzc4OS4yODIgMTU0Ljc0NCA3OTIuMzcgMTY0LjYyNCA3OTIuMzcgMTc3WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTY0Mi42NCAxMjZDNjM0LjYxNCAxMjYgNjI3LjI5MiAxMjcuNzA0IDYyMC42NzEgMTMxLjExM0M2MTQuMDUgMTM0LjUyMiA2MDguODM0IDEzOS4xMzUgNjA1LjEyMiAxNDUuMDVDNjAxLjQxMSAxNTAuODY1IDU5OS41MDUgMTU3LjM4MyA1OTkuNTA1IDE2NC4zMDFDNTk5LjUwNSAxNzAuNTE3IDYwMC45MDkgMTc2LjIzMiA2MDMuODE4IDE4MS4zNDZDNjA2LjYyNyAxODYuMjU5IDYxMC40MzkgMTkwLjM2OSA2MTUuMjU0IDE5My43NzhMNjAwLjkwOSAyMTMuMjNDNTk5LjEwMyAyMTUuNjM2IDU5OC45MDMgMjE4Ljg0NCA2MDAuMjA3IDIyMS40NTFDNjAxLjYxMSAyMjQuMTU4IDYwNC4yMTkgMjI1Ljc2MyA2MDcuMjI5IDIyNS43NjNINjExLjM0MkM2MDcuMzI5IDIyOC40NyA2MDQuMTE5IDIzMS42NzggNjAxLjkxMiAyMzUuNDg4QzU5OS4zMDQgMjM5Ljc5OSA1OTggMjQ0LjMxMSA1OTggMjQ4LjkyM0M1OTggMjU3LjU0NiA2MDEuODEyIDI2NC42NjUgNjA5LjMzNSAyNjkuOTc5QzYxNi43NTkgMjc1LjI5MyA2MjcuMTkxIDI3OCA2NDAuMzMyIDI3OEM2NDkuNDYxIDI3OCA2NTguMTg4IDI3Ni40OTYgNjY2LjExMyAyNzMuNTg4QzY3NC4xMzggMjcwLjY4MSA2ODAuNjU4IDI2Ni4zNjkgNjg1LjQ3MyAyNjAuNzU1QzY5MC4zODkgMjU1LjE0IDY5Mi44OTcgMjQ4LjMyMiA2OTIuODk3IDI0MC41MDFDNjkyLjg5NyAyMzIuMjggNjg5Ljg4NyAyMjYuNDY0IDY4Mi44NjUgMjIwLjg1QzY3Ni44NDcgMjE2LjEzNyA2NjcuNDE3IDIxMy42MzEgNjU1LjY4IDIxMy42MzFINjE1LjU1NUM2MTUuNDU1IDIxMy42MzEgNjE1LjM1NCAyMTMuNTMgNjE1LjM1NCAyMTMuNTNDNjE1LjM1NCAyMTMuNTMgNjE1LjI1NCAyMTMuMzMgNjE1LjM1NCAyMTMuMjNMNjI1Ljc4NyAxOTkuMTkzQzYyOC41OTYgMjAwLjQ5NiA2MzEuMjA0IDIwMS4yOTggNjMzLjUxMSAyMDEuNzk5QzYzNS45MTggMjAyLjMwMSA2MzguNjI3IDIwMi41MDEgNjQxLjYzNiAyMDIuNTAxQzY1MC4wNjMgMjAyLjUwMSA2NTcuNjg3IDIwMC43OTcgNjY0LjMwNyAxOTcuMzg4QzY3MC45MjggMTkzLjk3OSA2NzYuMjQ1IDE4OS4zNjcgNjgwLjA1NyAxODMuNDUxQzY4My44NjggMTc3LjYzNiA2ODUuNzc0IDE3MS4xMTkgNjg1Ljc3NCAxNjQuMjAxQzY4NS43NzQgMTU2Ljc4MSA2ODIuMTYzIDE0My4yNDUgNjcyLjMzMiAxMzYuMzI3QzY3Mi4zMzIgMTM2LjIyNyA2NzIuNDMzIDEzNi4yMjcgNjcyLjQzMyAxMzYuMjI3TDY5NCAxMzguNjMzVjEyOC43MDdINjU5LjQ5MkM2NTQuMDc1IDEyNi45MDIgNjQ4LjQ1OCAxMjYgNjQyLjY0IDEyNlpNNjU0LjY3NyAxODguNzY1QzY1MC44NjUgMTkwLjc3IDY0Ni43NTIgMTkxLjg3MyA2NDIuNjQgMTkxLjg3M0M2MzUuOTE5IDE5MS44NzMgNjMwIDE4OS40NjcgNjI0Ljk4NCAxODQuNzU1QzYxOS45NjkgMTgwLjA0MiA2MTcuNDYxIDE3My4xMjQgNjE3LjQ2MSAxNjQuMzAxQzYxNy40NjEgMTU1LjQ3OCA2MTkuOTY5IDE0OC41NTkgNjI0Ljk4NCAxNDMuODQ3QzYzMCAxMzkuMTM1IDYzNS45MTkgMTM2LjcyOCA2NDIuNjQgMTM2LjcyOEM2NDYuODUzIDEzNi43MjggNjUwLjg2NSAxMzcuNzMxIDY1NC42NzcgMTM5LjgzNkM2NTguNDg5IDE0MS44NDIgNjYxLjU5OSAxNDQuOTUgNjY0LjEwNyAxNDkuMDYxQzY2Ni41MTQgMTUzLjE3MiA2NjcuODE4IDE1OC4yODUgNjY3LjgxOCAxNjQuMzAxQzY2Ny44MTggMTcwLjQxNyA2NjYuNjE0IDE3NS41MyA2NjQuMTA3IDE3OS41NDFDNjYxLjY5OSAxODMuNjUyIDY1OC40ODkgMTg2LjY2IDY1NC42NzcgMTg4Ljc2NVpNNjI3LjQ5MiAyMjUuNjYySDY1NC42NzdDNjYyLjIwMSAyMjUuNjYyIDY2Ny4wMTYgMjI3LjE2NiA2NzAuMjI2IDIzMC4zNzVDNjczLjQzNiAyMzMuNTgzIDY3NS4wNDEgMjM3Ljg5NCA2NzUuMDQxIDI0Mi45MDhDNjc1LjA0MSAyNTAuMjI3IDY3Mi4xMzIgMjU2LjI0MyA2NjYuMzE0IDI2MC43NTVDNjYwLjQ5NSAyNjUuMjY3IDY1Mi42NzEgMjY3LjU3MyA2NDMuMDQxIDI2Ny41NzNDNjM0LjYxNCAyNjcuNTczIDYyNy41OTIgMjY1LjY2OCA2MjIuNDc2IDI2Mi4wNThDNjE3LjM2IDI1OC40NDkgNjE0Ljc1MiAyNTIuOTM0IDYxNC43NTIgMjQ1LjkxNkM2MTQuNzUyIDI0MS41MDQgNjE1Ljk1NiAyMzcuMzkzIDYxOC4zNjQgMjMzLjc4NEM2MjAuNzcxIDIzMC4xNzQgNjIzLjY4IDIyNy41NjcgNjI3LjQ5MiAyMjUuNjYyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEwODIuMzUgMjI0LjMyN0MxMDgwLjM3IDIyMy4yNDQgMTA3OC44OCAyMjEuNjY5IDEwNzcuNjkgMjE5Ljc5OUMxMDc2LjYgMjE3LjgzMSAxMDc2IDIxNS43NjQgMTA3NiAyMTMuNUMxMDc2IDIxMS4yMzYgMTA3Ni42IDIwOS4wNzEgMTA3Ny42OSAyMDcuMjAxQzEwNzguNzggMjA1LjIzMiAxMDgwLjM3IDIwMy43NTYgMTA4Mi4zNSAyMDIuNjczQzEwODQuMzQgMjAxLjU5MSAxMDg2LjUyIDIwMSAxMDg5IDIwMUMxMDkxLjQ4IDIwMSAxMDkzLjY2IDIwMS41OTEgMTA5NS42NSAyMDIuNjczQzEwOTcuNjMgMjAzLjc1NiAxMDk5LjEyIDIwNS4zMzEgMTEwMC4zMSAyMDcuMjAxQzExMDEuNCAyMDkuMTY5IDExMDIgMjExLjIzNiAxMTAyIDIxMy41QzExMDIgMjE1Ljc2NCAxMTAxLjQgMjE3LjkyOSAxMTAwLjMxIDIxOS43OTlDMTA5OS4yMiAyMjEuNzY4IDEwOTcuNjMgMjIzLjI0NCAxMDk1LjY1IDIyNC4zMjdDMTA5My42NiAyMjUuNDA5IDEwOTEuNDggMjI2IDEwODkgMjI2QzEwODYuNjIgMjI2IDEwODQuMzQgMjI1LjQwOSAxMDgyLjM1IDIyNC4zMjdaTTEwOTQuNTYgMjIyLjg1QzEwOTYuMjQgMjIxLjk2NSAxMDk3LjQ0IDIyMC41ODcgMTA5OC40MyAyMTkuMDEyQzEwOTkuMzIgMjE3LjMzOSAxMDk5LjgyIDIxNS40NjkgMTA5OS44MiAyMTMuNDAyQzEwOTkuODIgMjExLjMzNSAxMDk5LjMyIDIwOS40NjUgMTA5OC40MyAyMDcuNzkxQzEwOTcuNTMgMjA2LjExOCAxMDk2LjI0IDIwNC44MzkgMTA5NC41NiAyMDMuOTUzQzEwOTIuODcgMjAzLjA2NyAxMDkxLjA4IDIwMi41NzUgMTA4OSAyMDIuNTc1QzEwODYuOTIgMjAyLjU3NSAxMDg1LjEzIDIwMy4wNjcgMTA4My40NCAyMDMuOTUzQzEwODEuNzYgMjA0LjgzOSAxMDgwLjU2IDIwNi4yMTcgMTA3OS41NyAyMDcuNzkxQzEwNzguNjggMjA5LjQ2NSAxMDc4LjE4IDIxMS4zMzUgMTA3OC4xOCAyMTMuNDAyQzEwNzguMTggMjE1LjQ2OSAxMDc4LjY4IDIxNy4zMzkgMTA3OS41NyAyMTkuMDEyQzEwODAuNDcgMjIwLjY4NSAxMDgxLjc2IDIyMS45NjUgMTA4My40NCAyMjIuODVDMTA4NS4xMyAyMjMuNzM2IDEwODYuOTIgMjI0LjIyOCAxMDg5IDIyNC4yMjhDMTA5MS4wOCAyMjQuMjI4IDEwOTIuOTcgMjIzLjgzNSAxMDk0LjU2IDIyMi44NVpNMTA4My42NCAyMTkuNDA2VjIxOC41MkwxMDgzLjg0IDIxOC40MjFIMTA4NC40NEMxMDg0LjYzIDIxOC40MjEgMTA4NC44MyAyMTguMzIzIDEwODQuOTMgMjE4LjIyNEMxMDg1LjEzIDIxOC4wMjggMTA4NS4xMyAyMTcuOTI5IDEwODUuMTMgMjE3LjczMlYyMDguNTc5QzEwODUuMTMgMjA4LjM4MiAxMDg1LjAzIDIwOC4xODUgMTA4NC45MyAyMDguMDg3QzEwODQuNzMgMjA3Ljg5IDEwODQuNjMgMjA3Ljg5IDEwODQuNDQgMjA3Ljg5SDEwODMuODRMMTA4My42NCAyMDcuNzkxVjIwNi45MDZMMTA4My44NCAyMDYuODA3SDEwODlDMTA5MC40OSAyMDYuODA3IDEwOTEuNTggMjA3LjEwMiAxMDkyLjQ3IDIwNy43OTFDMTA5My4zNyAyMDguNDggMTA5My43NiAyMDkuMzY2IDEwOTMuNzYgMjEwLjU0N0MxMDkzLjc2IDIxMS40MzMgMTA5My40NyAyMTIuMzE5IDEwOTIuNzcgMjEyLjkwOUMxMDkyLjA4IDIxMy41OTggMTA5MS4yOCAyMTMuOTkyIDEwOTAuMjkgMjE0LjA5MUwxMDkxLjQ4IDIxNC40ODRMMTA5My43NiAyMTguMTI2QzEwOTMuOTYgMjE4LjQyMSAxMDk0LjE2IDIxOC41MiAxMDk0LjQ2IDIxOC41MkgxMDk1LjA1TDEwOTUuMTUgMjE4LjYxOFYyMTkuNTA0TDEwOTUuMDUgMjE5LjYwMkgxMDkxLjk4TDEwOTEuNzggMjE5LjUwNEwxMDg4LjYgMjE0LjE4OUgxMDg3LjgxVjIxNy43MzJDMTA4Ny44MSAyMTcuOTI5IDEwODcuOTEgMjE4LjEyNiAxMDg4LjAxIDIxOC4yMjRDMTA4OC4yMSAyMTguNDIxIDEwODguMzEgMjE4LjQyMSAxMDg4LjUgMjE4LjQyMUgxMDg5LjFMMTA4OS4zIDIxOC41MlYyMTkuNDA2TDEwODkuMSAyMTkuNTA0SDEwODMuODRMMTA4My42NCAyMTkuNDA2Wk0xMDg4LjcgMjEzLjAwOEMxMDg5LjUgMjEzLjAwOCAxMDkwLjE5IDIxMi44MTEgMTA5MC41OSAyMTIuMzE5QzEwOTAuOTggMjExLjkyNSAxMDkxLjI4IDIxMS4yMzYgMTA5MS4yOCAyMTAuNDQ5QzEwOTEuMjggMjA5LjY2MSAxMDkxLjA4IDIwOS4wNzEgMTA5MC42OSAyMDguNTc5QzEwOTAuMjkgMjA4LjA4NyAxMDg5LjY5IDIwNy44OSAxMDg5IDIwNy44OUgxMDg4LjZDMTA4OC40IDIwNy44OSAxMDg4LjIxIDIwNy45ODggMTA4OC4xMSAyMDguMDg3QzEwODcuOTEgMjA4LjI4MyAxMDg3LjkxIDIwOC4zODIgMTA4Ny45MSAyMDguNTc5VjIxMy4wMDhIMTA4OC43WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+" alt="MongoDB" />
   <div class="cover-accent"></div>
   <h1 class="cover-title">WRTN Technologies - Health Check Report</h1>
   <p class="cover-subtitle">MongoDB Consulting Report</p>
   <p class="cover-project"><span>Project</span><strong>crack-prod Cluster Health Check</strong></p>
   <p class="cover-customer"><span>Prepared for</span><strong>WRTN Technologies</strong></p>
   <div class="cover-meta"><p class="cover-version"><strong>Version:</strong> 1.0</p><p class="cover-date"><strong>Date:</strong> April 2026</p></div>
-  <div class="cover-participants"><span class="cover-participants-label">Participants</span>· Kunhan Choi, Principal Consulting Engineer, MongoDB &lt;han.choi@mongodb.com&gt;<br>· 김민종, Tech Leader, WRTN Technologies &lt;bob@wrtn.io&gt;<br>· 주성민, Tech Leader, WRTN Technologies &lt;jake@wrtn.io&gt;<br>· Doohyun Hwang, Senior Project Manager, MongoDB</div>
+  <div class="cover-participants"><span class="cover-participants-label">Participants</span>· 김민종, Tech Leader, WRTN Technologies &lt;bob@wrtn.io&gt;<br>· 주성민, Tech Leader, WRTN Technologies &lt;jake@wrtn.io&gt;<br>· Kunhan Choi, Principal Consulting Engineer, MongoDB &lt;han.choi@mongodb.com&gt;<br>· Doohyun Hwang, Senior Project Manager, MongoDB</div>
   <div class="cover-classification"><span class="cover-classification-badge confidential">Confidential</span></div>
 </section>
-  <nav class="toc" aria-label="Table of contents"><h2 class="toc-title">Table of Contents</h2><ul><li><span class="toc-entry"><a href="#1-executive-summary">1 Executive Summary</a></span></li><li><span class="toc-entry"><a href="#2-background">2 Background</a></span><ul><li><span class="toc-entry"><a href="#21-서비스-개요">2.1 서비스 개요</a></span></li><li><span class="toc-entry"><a href="#22-application-환경">2.2 Application 환경</a></span></li><li><span class="toc-entry"><a href="#23-cluster-환경">2.3 Cluster 환경</a></span><ul><li><span class="toc-entry"><a href="#231-cluster-configuration">2.3.1 Cluster Configuration</a></span></li><li><span class="toc-entry"><a href="#232-shard-configuration">2.3.2 Shard Configuration</a></span></li><li><span class="toc-entry"><a href="#233-shard-storage-summary">2.3.3 Shard Storage Summary</a></span></li><li><span class="toc-entry"><a href="#234-databases-summary">2.3.4 Databases Summary</a></span></li><li><span class="toc-entry"><a href="#235-sharded-collection">2.3.5 Sharded Collection</a></span></li><li><span class="toc-entry"><a href="#236-collection-stats">2.3.6 Collection Stats</a></span></li></ul></li><li><span class="toc-entry"><a href="#24-workload-analysis">2.4 Workload Analysis</a></span><ul><li><span class="toc-entry"><a href="#241-query-operations-shard-level">2.4.1 Query Operations — Shard Level</a></span></li><li><span class="toc-entry"><a href="#242-query-operations-mongos-level">2.4.2 Query Operations — mongos Level</a></span></li><li><span class="toc-entry"><a href="#243-cpu-utilization">2.4.3 CPU Utilization</a></span></li><li><span class="toc-entry"><a href="#244-query-targeting">2.4.4 Query Targeting</a></span></li><li><span class="toc-entry"><a href="#245-scan-and-orders">2.4.5 Scan and Orders</a></span></li><li><span class="toc-entry"><a href="#246-cross-shard-transaction">2.4.6 Cross-Shard Transaction</a></span></li></ul></li></ul></li><li><span class="toc-entry"><a href="#3-goal-of-the-consulting-engagement">3 Goal of the Consulting Engagement</a></span></li><li><span class="toc-entry"><a href="#4-recommendations">4 Recommendations</a></span><ul><li><span class="toc-entry"><a href="#41-sharding-아키텍처를-재설계하십시오">4.1 Sharding 아키텍처를 재설계하십시오</a></span><ul><li><span class="toc-entry"><a href="#411-현재-상태">4.1.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#412-sharding-설계-부재로-인한-문제">4.1.2 Sharding 설계 부재로 인한 문제</a></span></li><li><span class="toc-entry"><a href="#413-해소를-위한-선행-조건">4.1.3 해소를 위한 선행 조건</a></span></li><li><span class="toc-entry"><a href="#414-해소-전략">4.1.4 해소 전략</a></span></li><li><span class="toc-entry"><a href="#415-전략-평가">4.1.5 전략 평가</a></span></li></ul></li><li><span class="toc-entry"><a href="#42-인덱스-및-쿼리를-최적화하십시오">4.2 인덱스 및 쿼리를 최적화하십시오</a></span><ul><li><span class="toc-entry"><a href="#421-현재-상태">4.2.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#422-즉시-적용-가능한-인덱스-추가-목록">4.2.2 즉시 적용 가능한 인덱스 추가 목록</a></span></li><li><span class="toc-entry"><a href="#423-쿼리-패턴-변경이-필요한-항목">4.2.3 쿼리 패턴 변경이 필요한 항목</a></span></li></ul></li><li><span class="toc-entry"><a href="#43-불필요한-인덱스를-정리-및-제거하십시오">4.3 불필요한 인덱스를 정리 및 제거하십시오</a></span><ul><li><span class="toc-entry"><a href="#431-현재-상태">4.3.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#432-불필요한-인덱스의-유형">4.3.2 불필요한 인덱스의 유형</a></span></li><li><span class="toc-entry"><a href="#433-미사용-인덱스-식별-방법">4.3.3 미사용 인덱스 식별 방법</a></span></li><li><span class="toc-entry"><a href="#434-단계적-인덱스-정리">4.3.4 단계적 인덱스 정리</a></span></li><li><span class="toc-entry"><a href="#435-인덱스-목록">4.3.5 인덱스 목록</a></span></li></ul></li><li><span class="toc-entry"><a href="#44-data-fragmentation을-해소하십시오">4.4 Data Fragmentation을 해소하십시오</a></span><ul><li><span class="toc-entry"><a href="#441-fragmentation-원인">4.4.1 Fragmentation 원인</a></span></li><li><span class="toc-entry"><a href="#442-적용-방법">4.4.2 적용 방법</a></span></li></ul></li><li><span class="toc-entry"><a href="#45-read-분산을-위해-secondary-read를-고려하세요">4.5 Read 분산을 위해 Secondary Read를 고려하세요</a></span><ul><li><span class="toc-entry"><a href="#451-현재-상태">4.5.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#452-secondarypreferred-적용-가능-기준">4.5.2 secondaryPreferred 적용 가능 기준</a></span></li><li><span class="toc-entry"><a href="#453-secondary-read-적용">4.5.3 Secondary Read 적용</a></span></li></ul></li><li><span class="toc-entry"><a href="#46-mongoose-odm에서-native-driver로의-전환을-계획하십시오">4.6 Mongoose ODM에서 Native Driver로의 전환을 계획하십시오</a></span><ul><li><span class="toc-entry"><a href="#461-현재-상태">4.6.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#462-권고-조치">4.6.2 권고 조치</a></span></li></ul></li><li><span class="toc-entry"><a href="#47-online-archive를-활용한-데이터-티어링을-도입하십시오">4.7 Online Archive를 활용한 데이터 티어링을 도입하십시오</a></span><ul><li><span class="toc-entry"><a href="#471-현재-상태">4.7.1 현재 상태</a></span></li><li><span class="toc-entry"><a href="#472-권고-조치">4.7.2 권고 조치</a></span></li></ul></li></ul></li><li><span class="toc-entry"><a href="#5-other-notes-questions">5 Other Notes &amp; Questions</a></span><ul><li><span class="toc-entry"><a href="#51-mongoose-odm에-관하여">5.1 Mongoose ODM에 관하여</a></span></li><li><span class="toc-entry"><a href="#52-unique-index-빌드-실패-및-prepareunique-활용">5.2 Unique Index 빌드 실패 및 prepareUnique 활용</a></span></li><li><span class="toc-entry"><a href="#53-index를-활용한-in-memory-sort-제거">5.3 Index를 활용한 In-Memory Sort 제거</a></span></li><li><span class="toc-entry"><a href="#54-online-archive를-활용한-데이터-티어링">5.4 Online Archive를 활용한 데이터 티어링</a></span></li></ul></li><li><span class="toc-entry"><a href="#6-recommended-follow-up-consulting">6 Recommended Follow-up Consulting</a></span><ul><li><span class="toc-entry"><a href="#61-sharding-architecture-optimization">6.1 Sharding Architecture Optimization</a></span></li><li><span class="toc-entry"><a href="#62-query-performance-optimization-workshop">6.2 Query Performance Optimization Workshop</a></span></li><li><span class="toc-entry"><a href="#63-messages-클러스터-분리-설계">6.3 messages 클러스터 분리 설계</a></span></li><li><span class="toc-entry"><a href="#64-data-lifecycle-management">6.4 Data Lifecycle Management</a></span></li><li><span class="toc-entry"><a href="#65-training-subscription">6.5 Training Subscription</a></span></li></ul></li><li><span class="toc-entry"><a href="#appendix">Appendix</a></span><ul><li><span class="toc-entry"><a href="#appendix1-미사용-중복-인덱스-일람">Appendix1. 미사용 / 중복 인덱스 일람</a></span></li></ul></li></ul></nav>
+  <nav class="toc" aria-label="Table of contents"><h2 class="toc-title">Table of Contents</h2><ul><li><span class="toc-entry"><a href="#1-executive-summary"><span class="toc-num">1</span><span class="toc-label">Executive Summary</span></a></span></li><li><span class="toc-entry"><a href="#2-background"><span class="toc-num">2</span><span class="toc-label">Background</span></a></span><ul><li><span class="toc-entry"><a href="#21-서비스-개요"><span class="toc-num">2.1</span><span class="toc-label">서비스 개요</span></a></span></li><li><span class="toc-entry"><a href="#22-application-환경"><span class="toc-num">2.2</span><span class="toc-label">Application 환경</span></a></span></li><li><span class="toc-entry"><a href="#23-cluster-환경"><span class="toc-num">2.3</span><span class="toc-label">Cluster 환경</span></a></span><ul><li><span class="toc-entry"><a href="#231-cluster-configuration"><span class="toc-num">2.3.1</span><span class="toc-label">Cluster Configuration</span></a></span></li><li><span class="toc-entry"><a href="#232-shard-configuration"><span class="toc-num">2.3.2</span><span class="toc-label">Shard Configuration</span></a></span></li><li><span class="toc-entry"><a href="#233-shard-storage-summary"><span class="toc-num">2.3.3</span><span class="toc-label">Shard Storage Summary</span></a></span></li><li><span class="toc-entry"><a href="#234-databases-summary"><span class="toc-num">2.3.4</span><span class="toc-label">Databases Summary</span></a></span></li><li><span class="toc-entry"><a href="#235-sharded-collection"><span class="toc-num">2.3.5</span><span class="toc-label">Sharded Collection</span></a></span></li><li><span class="toc-entry"><a href="#236-collection-stats"><span class="toc-num">2.3.6</span><span class="toc-label">Collection Stats</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#24-workload-analysis"><span class="toc-num">2.4</span><span class="toc-label">Workload Analysis</span></a></span><ul><li><span class="toc-entry"><a href="#241-query-operations-shard-level"><span class="toc-num">2.4.1</span><span class="toc-label">Query Operations — Shard Level</span></a></span></li><li><span class="toc-entry"><a href="#242-query-operations-mongos-level"><span class="toc-num">2.4.2</span><span class="toc-label">Query Operations — mongos Level</span></a></span></li><li><span class="toc-entry"><a href="#243-cpu-utilization"><span class="toc-num">2.4.3</span><span class="toc-label">CPU Utilization</span></a></span></li><li><span class="toc-entry"><a href="#244-query-targeting"><span class="toc-num">2.4.4</span><span class="toc-label">Query Targeting</span></a></span></li><li><span class="toc-entry"><a href="#245-scan-and-orders"><span class="toc-num">2.4.5</span><span class="toc-label">Scan and Orders</span></a></span></li><li><span class="toc-entry"><a href="#246-cross-shard-transaction"><span class="toc-num">2.4.6</span><span class="toc-label">Cross-Shard Transaction</span></a></span></li></ul></li></ul></li><li><span class="toc-entry"><a href="#3-goal-of-the-consulting-engagement"><span class="toc-num">3</span><span class="toc-label">Goal of the Consulting Engagement</span></a></span></li><li><span class="toc-entry"><a href="#4-recommendations"><span class="toc-num">4</span><span class="toc-label">Recommendations</span></a></span><ul><li><span class="toc-entry"><a href="#41-sharding-아키텍처를-재설계하십시오"><span class="toc-num">4.1</span><span class="toc-label">Sharding 아키텍처를 재설계하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#411-현재-상태"><span class="toc-num">4.1.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#412-sharding-설계-부재로-인한-문제"><span class="toc-num">4.1.2</span><span class="toc-label">Sharding 설계 부재로 인한 문제</span></a></span></li><li><span class="toc-entry"><a href="#413-해소를-위한-선행-조건"><span class="toc-num">4.1.3</span><span class="toc-label">해소를 위한 선행 조건</span></a></span></li><li><span class="toc-entry"><a href="#414-해소-전략"><span class="toc-num">4.1.4</span><span class="toc-label">해소 전략</span></a></span></li><li><span class="toc-entry"><a href="#415-전략-평가"><span class="toc-num">4.1.5</span><span class="toc-label">전략 평가</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#42-인덱스-및-쿼리를-최적화하십시오"><span class="toc-num">4.2</span><span class="toc-label">인덱스 및 쿼리를 최적화하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#421-현재-상태"><span class="toc-num">4.2.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#422-즉시-적용-가능한-인덱스-추가-목록"><span class="toc-num">4.2.2</span><span class="toc-label">즉시 적용 가능한 인덱스 추가 목록</span></a></span></li><li><span class="toc-entry"><a href="#423-쿼리-패턴-변경이-필요한-항목"><span class="toc-num">4.2.3</span><span class="toc-label">쿼리 패턴 변경이 필요한 항목</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#43-불필요한-인덱스를-정리-및-제거하십시오"><span class="toc-num">4.3</span><span class="toc-label">불필요한 인덱스를 정리 및 제거하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#431-현재-상태"><span class="toc-num">4.3.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#432-불필요한-인덱스의-유형"><span class="toc-num">4.3.2</span><span class="toc-label">불필요한 인덱스의 유형</span></a></span></li><li><span class="toc-entry"><a href="#433-미사용-인덱스-식별-방법"><span class="toc-num">4.3.3</span><span class="toc-label">미사용 인덱스 식별 방법</span></a></span></li><li><span class="toc-entry"><a href="#434-단계적-인덱스-정리"><span class="toc-num">4.3.4</span><span class="toc-label">단계적 인덱스 정리</span></a></span></li><li><span class="toc-entry"><a href="#435-인덱스-목록"><span class="toc-num">4.3.5</span><span class="toc-label">인덱스 목록</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#44-data-fragmentation을-해소하십시오"><span class="toc-num">4.4</span><span class="toc-label">Data Fragmentation을 해소하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#441-fragmentation-원인"><span class="toc-num">4.4.1</span><span class="toc-label">Fragmentation 원인</span></a></span></li><li><span class="toc-entry"><a href="#442-적용-방법"><span class="toc-num">4.4.2</span><span class="toc-label">적용 방법</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#45-read-분산을-위해-secondary-read를-고려하세요"><span class="toc-num">4.5</span><span class="toc-label">Read 분산을 위해 Secondary Read를 고려하세요</span></a></span><ul><li><span class="toc-entry"><a href="#451-현재-상태"><span class="toc-num">4.5.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#452-secondarypreferred-적용-가능-기준"><span class="toc-num">4.5.2</span><span class="toc-label">secondaryPreferred 적용 가능 기준</span></a></span></li><li><span class="toc-entry"><a href="#453-secondary-read-적용"><span class="toc-num">4.5.3</span><span class="toc-label">Secondary Read 적용</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#46-mongoose-odm에서-native-driver로의-전환을-계획하십시오"><span class="toc-num">4.6</span><span class="toc-label">Mongoose ODM에서 Native Driver로의 전환을 계획하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#461-현재-상태"><span class="toc-num">4.6.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#462-권고-조치"><span class="toc-num">4.6.2</span><span class="toc-label">권고 조치</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#47-online-archive를-활용한-데이터-티어링을-도입하십시오"><span class="toc-num">4.7</span><span class="toc-label">Online Archive를 활용한 데이터 티어링을 도입하십시오</span></a></span><ul><li><span class="toc-entry"><a href="#471-현재-상태"><span class="toc-num">4.7.1</span><span class="toc-label">현재 상태</span></a></span></li><li><span class="toc-entry"><a href="#472-권고-조치"><span class="toc-num">4.7.2</span><span class="toc-label">권고 조치</span></a></span></li></ul></li></ul></li><li><span class="toc-entry"><a href="#5-other-notes-questions"><span class="toc-num">5</span><span class="toc-label">Other Notes &amp; Questions</span></a></span><ul><li><span class="toc-entry"><a href="#51-mongoose-odm에-관하여"><span class="toc-num">5.1</span><span class="toc-label">Mongoose ODM에 관하여</span></a></span></li><li><span class="toc-entry"><a href="#52-unique-index-빌드-실패-및-prepareunique-활용"><span class="toc-num">5.2</span><span class="toc-label">Unique Index 빌드 실패 및 prepareUnique 활용</span></a></span></li><li><span class="toc-entry"><a href="#53-index를-활용한-in-memory-sort-제거"><span class="toc-num">5.3</span><span class="toc-label">Index를 활용한 In-Memory Sort 제거</span></a></span></li><li><span class="toc-entry"><a href="#54-online-archive를-활용한-데이터-티어링"><span class="toc-num">5.4</span><span class="toc-label">Online Archive를 활용한 데이터 티어링</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#6-recommended-follow-up-consulting"><span class="toc-num">6</span><span class="toc-label">Recommended Follow-up Consulting</span></a></span><ul><li><span class="toc-entry"><a href="#61-sharding-architecture-optimization"><span class="toc-num">6.1</span><span class="toc-label">Sharding Architecture Optimization</span></a></span></li><li><span class="toc-entry"><a href="#62-query-performance-optimization-workshop"><span class="toc-num">6.2</span><span class="toc-label">Query Performance Optimization Workshop</span></a></span></li><li><span class="toc-entry"><a href="#63-messages-클러스터-분리-설계"><span class="toc-num">6.3</span><span class="toc-label">messages 클러스터 분리 설계</span></a></span></li><li><span class="toc-entry"><a href="#64-data-lifecycle-management"><span class="toc-num">6.4</span><span class="toc-label">Data Lifecycle Management</span></a></span></li><li><span class="toc-entry"><a href="#65-training-subscription"><span class="toc-num">6.5</span><span class="toc-label">Training Subscription</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#appendix"><span class="toc-label">Appendix</span></a></span><ul><li><span class="toc-entry"><a href="#appendix1-미사용-중복-인덱스-일람"><span class="toc-label">Appendix1. 미사용 / 중복 인덱스 일람</span></a></span></li></ul></li></ul></nav>
   <main class="content"><p>이 문서는 뤼튼테크놀로지스(WRTN Technologies)와 진행한 5일간의 컨설팅 인게이지먼트에서 논의된 내용과 권고사항을 요약합니다.</p>
 <h1 id="1-executive-summary">1 Executive Summary</h1>
 <p>뤼튼테크놀로지스(WRTN Technologies)의 crack-prod[0] 클러스터에 대한 5일간 Health Check를 수행한 결과, 총 7건의 Recommendation을 도출하였습니다. 아래 표에 각 권고사항의 핵심 내용, 권고 조치를 요약하였습니다.</p>

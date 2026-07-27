@@ -336,11 +336,13 @@ node dist/cli.js input.md --stage customer \
 
 | 요소                | 위치              | 소스                          |
 | ------------------- | ----------------- | ----------------------------- |
-| MongoDB 로고        | PDF 헤더 우측     | `assets/mongodb-logo.svg`     |
+| MongoDB 로고 (표지) | 표지 상단         | `assets/mongodb-logo-white.svg` (다크 배경용) |
+| MongoDB 로고 (본문) | PDF 헤더 우측     | `assets/mongodb-logo-slate-blue.svg` (밝은 배경용) |
 | CONFIDENTIAL 배지   | PDF 헤더 좌측     | `pdf.ts` 인라인               |
 | © MongoDB, Inc.     | PDF 푸터 우측     | `copyright_year` 기반         |
 | Spring Green 액센트 | 표지, 헤딩, 배지  | `assets/styles.css` 커스텀 프로퍼티 |
 | Slate 배경          | 표지              | `#001E2B`                     |
+
 
 작성자가 브랜드 요소를 직접 Markdown에 넣을 필요는 없다.
 
