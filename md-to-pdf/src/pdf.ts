@@ -132,6 +132,80 @@ export async function ensureCoverTitleFitsOneLine(page: Page): Promise<void> {
   }
 }
 
+const MIN_CODE_FONT_PX = 6;
+const CODE_FONT_STEP_PX = 0.5;
+
+// Must match the `@page { margin: 25mm 20mm 20mm 20mm; }` rule in
+// styles.css (only the left/right values matter here).
+const A4_WIDTH_PX = 794;
+const PAGE_MARGIN_LEFT_MM = 20;
+const PAGE_MARGIN_RIGHT_MM = 20;
+const mmToPx = (mm: number): number => (mm / 25.4) * 96;
+const PRINTABLE_CONTENT_WIDTH_PX = Math.round(
+  A4_WIDTH_PX - mmToPx(PAGE_MARGIN_LEFT_MM) - mmToPx(PAGE_MARGIN_RIGHT_MM),
+);
+
+interface CodeBlockShrinkResult {
+  shrunkCount: number;
+  stillOverflowing: string[];
+}
+
+/**
+ * Code blocks use `white-space: pre` (see styles.css) so a line is never
+ * soft-wrapped by the browser. Chromium's print-to-PDF pipeline has no
+ * concept of a "soft wrap": any visual line break it draws is baked into the
+ * PDF's text layer as a hard line break, and `word-break` can split a break
+ * mid-token. That means a wrapped code line pastes back as multiple broken
+ * lines (or a word split in half) instead of the original single line.
+ *
+ * To preserve exact copy-paste fidelity, long lines are shrunk in-place
+ * (font-size only, same technique as ensureCoverTitleFitsOneLine) until they
+ * fit the block's width without wrapping, rather than letting them wrap.
+ *
+ * The measurement has to happen at the *printable* content width, not the
+ * live viewport width: the `.content`/`.toc` side padding that carves out
+ * the visible page margin only exists under `@media screen` (see
+ * styles.css), and the `@page` margin used for print pagination is applied
+ * by Chromium during the print pass itself, invisible to a plain
+ * `getBoundingClientRect`/`clientWidth` read beforehand. Left unaccounted
+ * for, blocks measure ~150px wider than what will actually be available at
+ * print time, so lines that fit here still clip in the final PDF. The
+ * viewport is temporarily narrowed to the real printable width for this
+ * measurement and restored afterward.
+ */
+export async function ensureCodeBlocksFitWithoutWrapping(page: Page): Promise<CodeBlockShrinkResult> {
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: PRINTABLE_CONTENT_WIDTH_PX, height: originalViewport?.height ?? 1123 });
+
+  try {
+    return await page.evaluate(({ minFontPx, stepPx }) => {
+      const blocks = Array.from(document.querySelectorAll<HTMLElement>('pre'));
+      const stillOverflowing: string[] = [];
+      let shrunkCount = 0;
+
+      for (const pre of blocks) {
+        let fontSize = parseFloat(getComputedStyle(pre).fontSize);
+        let guard = 0;
+        let shrunk = false;
+        while (pre.scrollWidth > pre.clientWidth + 1 && fontSize > minFontPx && guard < 400) {
+          fontSize -= stepPx;
+          pre.style.fontSize = `${fontSize}px`;
+          shrunk = true;
+          guard++;
+        }
+        if (shrunk) shrunkCount++;
+        if (pre.scrollWidth > pre.clientWidth + 1) {
+          stillOverflowing.push((pre.innerText || '').split('\n')[0]?.slice(0, 80) ?? '');
+        }
+      }
+
+      return { shrunkCount, stillOverflowing };
+    }, { minFontPx: MIN_CODE_FONT_PX, stepPx: CODE_FONT_STEP_PX });
+  } finally {
+    if (originalViewport) await page.setViewportSize(originalViewport);
+  }
+}
+
 export async function generatePdf(
   htmlContent: string,
   outputPath: string,
@@ -149,6 +223,10 @@ export async function generatePdf(
     await page.setContent(htmlContent, { waitUntil: 'load' });
     await waitForContentReady(page);
     await ensureCoverTitleFitsOneLine(page);
+    const codeShrink = await ensureCodeBlocksFitWithoutWrapping(page);
+    for (const line of codeShrink.stillOverflowing) {
+      console.warn(`Code line still exceeds page width at the minimum font size and may wrap: "${line}"`);
+    }
 
     await page.pdf({
       path: outputPath,
@@ -194,6 +272,7 @@ export async function generateReviewShots(
     await page.setContent(htmlContent, { waitUntil: 'load' });
     await waitForContentReady(page);
     await ensureCoverTitleFitsOneLine(page);
+    await ensureCodeBlocksFitWithoutWrapping(page);
 
     const totalHeight = await page.evaluate(() => document.body.scrollHeight);
     const pageCount = Math.ceil(totalHeight / printableHeightPx);

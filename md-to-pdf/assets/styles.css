@@ -221,6 +221,17 @@ code {
    CODE BLOCKS
    ============================================================================= */
 
+/*
+ * Code lines are never soft-wrapped (white-space: pre, no word-break).
+ * PDF pages have a fixed physical width and Chromium bakes any visual wrap
+ * into the PDF text layer as a hard line break, so a wrapped line (or a word
+ * split mid-token by word-break) gets pasted back as multiple broken lines
+ * instead of the original single line. To keep 1:1 copy-paste fidelity
+ * between source and pasted text, long lines are instead shrunk to fit via
+ * ensureCodeBlocksFitWithoutWrapping() in pdf.ts (mirrors the cover-title
+ * shrink-to-fit approach). overflow-x:auto is only a screen/HTML fallback
+ * for the rare line that still can't be shrunk enough.
+ */
 pre {
   font-family: var(--font-code);
   font-size: var(--font-size-small);
@@ -230,9 +241,10 @@ pre {
   border-radius: 6px;
   padding: 16px 20px;
   margin-bottom: var(--space-md);
-  overflow: hidden;
-  white-space: pre-wrap;
-  word-break: break-word;
+  overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -243,7 +255,7 @@ pre.shiki {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 16px 20px;
-  overflow: hidden;
+  overflow-x: auto;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -257,8 +269,9 @@ pre code {
   border: none;
   border-radius: 0;
   padding: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 /* Code block with file name tab */
