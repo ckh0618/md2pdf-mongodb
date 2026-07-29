@@ -38,6 +38,18 @@ test('creates unique heading ids', async () => {
   assert.deepEqual(result.toc.map((item) => item.id), ['repeat', 'repeat-2']);
 });
 
+test('keeps a lone tilde literal instead of GFM strikethrough, but still supports ~~text~~', async () => {
+  const markdown = '처리 시간은 1~10초이며, 데이터 규모는 20~30개 사이입니다. '
+    + '홈 디렉토리는 ~/workspace 입니다.\n\n~~완전 삭제~~는 취소선 처리됩니다.';
+  const result = await convertMarkdown(markdown, process.cwd());
+
+  assert.match(result.html, /1~10초/);
+  assert.match(result.html, /20~30개/);
+  assert.match(result.html, /~\/workspace/);
+  assert.match(result.html, /<del>완전 삭제<\/del>/);
+});
+
+
 test('embeds local images as data URLs', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'md-to-pdf-'));
   try {

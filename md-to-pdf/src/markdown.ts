@@ -421,7 +421,11 @@ async function transformCodeBlocks(root: Root): Promise<void> {
 }
 
 export async function convertMarkdown(markdown: string, basePath: string): Promise<MarkdownResult> {
-  const parser = unified().use(remarkParse).use(remarkGfm);
+  // singleTilde: false — otherwise a lone "~" (common in Korean range
+  // notation like "1~10초", "20~30개", or paths like "~/workspace") gets
+  // misparsed as GFM strikethrough (<del>) instead of a literal tilde.
+  // Proper strikethrough still works via the standard "~~text~~" syntax.
+  const parser = unified().use(remarkParse).use(remarkGfm, { singleTilde: false });
   const root = parser.parse(markdown) as Root;
 
   transformPriorityHeadings(root);
