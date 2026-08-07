@@ -97,6 +97,23 @@ The renderer also supports AI-assisted visual review artifacts:
 node md-to-pdf/dist/cli.js ./document.md --stage customer --ai-review ./ai-review
 ```
 
+## Multilingual samples
+
+The [samples directory](samples/) contains Korean, Simplified Chinese, Traditional Chinese,
+and English sample reports. Each sample includes the Markdown source and the customer-stage HTML
+and PDF rendered from that source:
+
+- [Korean sample](samples/sample-report-ko.md)
+- [Simplified Chinese sample](samples/sample-report-zh-hans.md)
+- [Traditional Chinese sample](samples/sample-report-zh-hant.md)
+- [English sample](samples/sample-report-en.md)
+
+Render all four sources from the repository root:
+
+```bash
+for source in samples/*.md; do node md-to-pdf/dist/cli.js "$source" --stage customer; done
+```
+
 ## Document metadata
 
 Metadata can be supplied through YAML front matter or CLI flags. Supported front matter fields

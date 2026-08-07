@@ -1,0 +1,1617 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Markdown to PDF 샘플 리포트</title>
+  <style>/* =============================================================================
+   Markdown document — HTML/PDF Stylesheet
+   Target: browser display and Playwright (headless Chromium) print rendering
+   Color system: green/neutral document palette
+   ============================================================================= */
+
+/* =============================================================================
+   RESET & BASE
+   ============================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* =============================================================================
+   PAGE SETUP
+   ============================================================================= */
+
+@page {
+  size: A4;
+  margin: 25mm 20mm 20mm 20mm;
+  background-color: #FFFFFF;
+}
+
+@page cover {
+  margin: 0;
+  background-color: #001E2B;
+}
+
+/* =============================================================================
+   CUSTOM PROPERTIES — document palette
+   ============================================================================= */
+
+:root {
+  /* Text */
+  --color-text-primary:   #001E2B;
+  --color-text-secondary: #1A2B33;
+  --color-text-muted:     #4A5860;
+  --color-text-inverse:   #FFFFFF;
+
+  /* Brand */
+  --color-brand-accessible:  #00684A; /* green.dark2 — AA-safe on white */
+  --color-brand-decorative:  #00ED64; /* brand green — decorative only, NOT on white text */
+
+  /* Interactive */
+  --color-link:           #016BF8;
+
+  /* Surfaces */
+  --color-bg-page:        #FFFFFF;
+  --color-bg-secondary:   #F9FBFA; /* gray.light3 */
+
+  /* Borders */
+  --color-border:         #E8EDEB; /* gray.light2 */
+  --color-table-border:   #D0D7DE; /* GitHub border.default */
+  --color-table-header:   #DDE3E7; /* stronger than striped rows, lighter than dark fill */
+  --color-table-stripe:   #F6F8FA; /* GitHub canvas.subtle */
+  --color-shadow:         rgba(0, 30, 43, 0.12);
+
+  /* Semantic */
+  --color-warning:        #FFC010;
+  --color-error:          #DB3030;
+  --color-info:           #016BF8;
+  --color-tip:            #00684A;
+  --color-important:      #B45AF2;
+
+  /* Typography scale (pt — print units) */
+  --font-size-body:       10.5pt;
+  --font-size-small:      9pt;
+  --font-size-xsmall:     8pt;
+  --font-size-h1:         18pt;
+  --font-size-h2:         14pt;
+  --font-size-h3:         12pt;
+  --font-size-h4:         11pt;
+
+  /* Font families */
+  --font-body:    "Pretendard Variable", Pretendard, Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: Inter, "Pretendard Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code:    "Source Code Pro", "Fira Code", "Cascadia Code", monospace;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   16px;
+  --space-lg:   24px;
+  --space-xl:   32px;
+  --space-xxl:  48px;
+}
+
+/* =============================================================================
+   DOCUMENT BASE
+   ============================================================================= */
+
+html {
+  font-size: var(--font-size-body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* =============================================================================
+   HEADINGS
+   ============================================================================= */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--color-text-primary);
+  line-height: 1.25;
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-md);
+  font-weight: 700;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: 700;
+  margin-top: 0;
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--color-brand-accessible);
+  page-break-before: always;
+  break-before: page;
+}
+
+/* First h1 on the main content must not force a new page */
+body > h1:first-of-type,
+.content > h1:first-of-type,
+article > h1:first-of-type,
+main > h1:first-of-type {
+  page-break-before: avoid;
+  break-before: avoid;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: 700;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+  font-weight: 600;
+}
+
+h5 {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+
+h6 {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* =============================================================================
+   PARAGRAPHS & INLINE TEXT
+   ============================================================================= */
+
+p {
+  margin-bottom: var(--space-md);
+  orphans: 3;
+  widows: 3;
+}
+
+strong, b {
+  font-weight: 600;
+}
+
+em, i {
+  font-style: italic;
+}
+
+/* =============================================================================
+   LINKS
+   ============================================================================= */
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+/* =============================================================================
+   INLINE CODE
+   ============================================================================= */
+
+code {
+  font-family: var(--font-code);
+  font-size: 0.9em;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* =============================================================================
+   CODE BLOCKS
+   ============================================================================= */
+
+/*
+ * Code lines are never soft-wrapped (white-space: pre, no word-break).
+ * PDF pages have a fixed physical width and Chromium bakes any visual wrap
+ * into the PDF text layer as a hard line break, so a wrapped line (or a word
+ * split mid-token by word-break) gets pasted back as multiple broken lines
+ * instead of the original single line. To keep 1:1 copy-paste fidelity
+ * between source and pasted text, long lines are instead shrunk to fit via
+ * ensureCodeBlocksFitWithoutWrapping() in pdf.ts (mirrors the cover-title
+ * shrink-to-fit approach). overflow-x:auto is only a screen/HTML fallback
+ * for the rare line that still can't be shrunk enough.
+ */
+pre {
+  font-family: var(--font-code);
+  font-size: var(--font-size-small);
+  line-height: 1.55;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Shiki syntax-highlighted blocks */
+pre.shiki {
+  background-color: var(--color-bg-secondary) !important;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Reset inline code inside pre */
+pre code {
+  font-family: var(--font-code);
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* Code block with file name tab */
+.code-block-wrapper {
+  margin-bottom: var(--space-md);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.code-title {
+  display: block;
+  font-family: var(--font-code);
+  font-size: var(--font-size-xsmall);
+  color: var(--color-text-secondary);
+  background-color: var(--color-border);
+  padding: 4px 12px;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  width: fit-content;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+.code-block-wrapper .code-title + pre,
+.code-block-wrapper .code-title + pre.shiki {
+  border-radius: 0 6px 6px 6px;
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   BLOCKQUOTES
+   ============================================================================= */
+
+blockquote {
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  padding-left: 20px;
+  margin: var(--space-md) 0;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   HORIZONTAL RULES
+   ============================================================================= */
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-xl) 0;
+}
+
+/* =============================================================================
+   LISTS
+   ============================================================================= */
+
+ul, ol {
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-xl);
+}
+
+li {
+  margin-bottom: var(--space-xs);
+  line-height: 1.6;
+}
+
+li > p {
+  margin-bottom: var(--space-xs);
+}
+
+/* Nested list indentation */
+ul ul,
+ul ol,
+ol ul,
+ol ol {
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-xs);
+  padding-left: var(--space-lg);
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ul ul {
+  list-style-type: circle;
+}
+
+ul ul ul {
+  list-style-type: square;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+ol ol {
+  list-style-type: lower-alpha;
+}
+
+ol ol ol {
+  list-style-type: lower-roman;
+}
+
+/* =============================================================================
+   TABLES
+   ============================================================================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-small);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+thead {
+  display: table-header-group; /* repeat header on page break */
+}
+
+thead tr {
+  background-color: var(--color-table-header);
+  color: var(--color-text-primary);
+}
+
+thead th {
+  padding: 8px 13px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid var(--color-table-border);
+}
+
+tbody tr:nth-child(odd) {
+  background-color: var(--color-bg-page);
+}
+
+tbody tr:nth-child(even) {
+  background-color: var(--color-table-stripe);
+}
+
+tbody td {
+  padding: 8px 13px;
+  border: 1px solid var(--color-table-border);
+  vertical-align: top;
+}
+
+/* =============================================================================
+   IMAGES & FIGURES
+   ============================================================================= */
+
+figure {
+  margin: var(--space-lg) 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+figcaption {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  margin-top: var(--space-sm);
+}
+
+/* Standalone image (not in figure) */
+p > img {
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+/* =============================================================================
+   ADMONITION BOXES
+   ============================================================================= */
+
+.admonition {
+  border-left: 4px solid var(--color-border);
+  border-radius: 0 6px 6px 0;
+  padding: 16px 20px;
+  margin: var(--space-md) 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.admonition p:last-child {
+  margin-bottom: 0;
+}
+
+.admonition-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--font-size-body);
+  margin-bottom: var(--space-sm);
+  display: block;
+}
+
+/* Note / Info */
+.admonition-note {
+  border-left-color: var(--color-info);
+  background-color: #F0F5FF;
+}
+
+.admonition-note .admonition-title {
+  color: var(--color-info);
+}
+
+.admonition-note .admonition-title::before {
+  content: "ℹ  ";
+}
+
+/* Tip */
+.admonition-tip {
+  border-left-color: var(--color-tip);
+  background-color: #E3FCF7;
+}
+
+.admonition-tip .admonition-title {
+  color: var(--color-tip);
+}
+
+.admonition-tip .admonition-title::before {
+  content: "✦  ";
+}
+
+/* Warning */
+.admonition-warning {
+  border-left-color: var(--color-warning);
+  background-color: #FFF8E6;
+}
+
+.admonition-warning .admonition-title {
+  color: #8A6200; /* darkened for AA on #FFF8E6 */
+}
+
+.admonition-warning .admonition-title::before {
+  content: "⚠  ";
+}
+
+/* Caution / Danger */
+.admonition-caution {
+  border-left-color: var(--color-error);
+  background-color: #FFF0F0;
+}
+
+.admonition-caution .admonition-title {
+  color: var(--color-error);
+}
+
+.admonition-caution .admonition-title::before {
+  content: "⛔  ";
+}
+
+/* Important */
+.admonition-important {
+  border-left-color: var(--color-important);
+  background-color: #F8F0FF;
+}
+
+.admonition-important .admonition-title {
+  color: #7B2FBE; /* darkened for AA on #F8F0FF */
+}
+
+.admonition-important .admonition-title::before {
+  content: "★  ";
+}
+
+/* =============================================================================
+   PAGE HEADER & FOOTER AREAS
+   ============================================================================= */
+
+.page-header {
+  font-size: var(--font-size-xsmall);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.page-footer {
+  font-size: var(--font-size-xsmall);
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-xs);
+  margin-top: var(--space-lg);
+}
+
+/* =============================================================================
+   COVER PAGE
+   ============================================================================= */
+
+.cover-page {
+  page: cover;
+  width: 100%;
+  height: 297mm;
+  min-height: 297mm;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  padding: 60px 56px 48px 56px;
+  position: relative;
+  page-break-after: always;
+  break-after: page;
+  display: block;
+  overflow: hidden;
+}
+
+/* Logo placeholder */
+.cover-logo {
+  display: block;
+  margin-bottom: 48px;
+  height: 40px;
+  width: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cover-logo-placeholder {
+  display: block;
+  width: 160px;
+  height: 40px;
+  background-color: var(--color-brand-decorative);
+  border-radius: 4px;
+  margin-bottom: 48px;
+}
+
+.cover-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 48px;
+  color: var(--color-text-inverse);
+  font-family: var(--font-heading);
+  font-size: 24pt;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.cover-brand-leaf {
+  width: 24px;
+  height: 40px;
+  color: var(--color-brand-decorative);
+  flex: none;
+}
+
+.cover-stage {
+  position: absolute;
+  top: 60px;
+  right: 56px;
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.cover-stage-review {
+  color: #FFF2CC;
+  border: 1px solid #FFC010;
+  background-color: rgba(148, 79, 0, 0.35);
+}
+
+/* Green accent line */
+.cover-accent {
+  display: block;
+  width: 64px;
+  height: 4px;
+  background-color: var(--color-brand-decorative);
+  border-radius: 2px;
+  margin-bottom: var(--space-lg);
+}
+
+/* Cover text */
+.cover-title {
+  font-family: var(--font-heading);
+  font-size: 28pt;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-inverse);
+  margin-bottom: var(--space-md);
+  letter-spacing: -0.5px;
+  border-bottom: none;
+  padding-bottom: 0;
+  page-break-before: avoid;
+  break-before: avoid;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.cover-subtitle {
+  font-family: var(--font-body);
+  font-size: 18pt;
+  font-weight: 400;
+  color: #FFFFFF;
+  margin-bottom: var(--space-xl);
+  line-height: 1.4;
+}
+
+.cover-customer {
+  margin: 0 0 var(--space-xl);
+  color: #FFFFFF;
+  overflow-wrap: anywhere;
+}
+
+.cover-customer span {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: #00ED64;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xsmall);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cover-customer strong {
+  display: block;
+  color: #FFFFFF;
+  font-family: var(--font-heading);
+  font-size: 16pt;
+  font-weight: 600;
+}
+
+.cover-meta {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  color: #FFFFFF;
+  margin-bottom: var(--space-xs);
+  line-height: 1.5;
+}
+
+.cover-meta strong {
+  color: #00ED64;
+  font-weight: 700;
+}
+
+.cover-version,
+.cover-date,
+.cover-author {
+  font-size: var(--font-size-small);
+  color: #FFFFFF;
+  margin-bottom: var(--space-xs);
+}
+
+.cover-author strong,
+.cover-meta strong {
+  color: #00ED64;
+  font-weight: 700;
+}
+
+.cover-project {
+  margin: 0 0 var(--space-xl);
+  color: #FFFFFF;
+  overflow-wrap: anywhere;
+}
+
+.cover-project span {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: #00ED64;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xsmall);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cover-project strong {
+  display: block;
+  color: #FFFFFF;
+  font-family: var(--font-heading);
+  font-size: 16pt;
+  font-weight: 600;
+}
+
+.cover-participants {
+  font-family: var(--font-body);
+  font-size: var(--font-size-small);
+  font-weight: 400;
+  color: #E3FCF7;
+  line-height: 1.6;
+  margin-bottom: var(--space-xl);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.cover-participants-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: #00ED64;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xsmall);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Classification badge — pinned to bottom */
+.cover-classification {
+  position: absolute;
+  bottom: 48px;
+  left: 56px;
+  right: 56px;
+  display: block;
+}
+
+.cover-classification-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xsmall);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  background-color: var(--color-brand-decorative);
+  padding: 4px 12px;
+  border-radius: 3px;
+}
+
+.cover-classification-badge.internal {
+  background-color: var(--color-brand-decorative);
+  color: var(--color-text-primary);
+}
+
+.cover-classification-badge.confidential {
+  background-color: #00ED64;
+  color: #001E2B;
+  border: 1px solid #00ED64;
+}
+
+.cover-classification-badge.public {
+  background-color: rgba(255, 255, 255, 0.20);
+  color: var(--color-text-inverse);
+  border: 1px solid rgba(255, 255, 255, 0.40);
+}
+
+/* Decorative corner element */
+.cover-page::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 220px;
+  height: 220px;
+  background-color: var(--color-brand-decorative);
+  opacity: 0.06;
+  border-radius: 50%;
+  transform: translate(40%, 40%);
+}
+
+/* =============================================================================
+   TABLE OF CONTENTS
+   ============================================================================= */
+
+.toc {
+  margin-bottom: var(--space-xl);
+  page-break-after: always;
+  break-after: page;
+}
+
+.toc h2,
+.toc-title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h2);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  position: relative;
+  page-break-before: avoid;
+  break-before: avoid;
+}
+
+/* Decorative accent rule under the TOC title, echoing the cover page accent */
+.toc-title {
+  border-bottom: none;
+}
+
+.toc-title::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 64px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-brand-decorative) 0%, var(--color-brand-accessible) 100%);
+}
+
+.toc ul,
+.toc ol {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.toc li {
+  margin-bottom: 0;
+  line-height: 1.55;
+}
+
+/* Level 1 (chapters): generous spacing + top rule so each chapter reads as
+   its own row in an index, not just another line of text. */
+.toc > ul > li {
+  font-weight: 600;
+  font-size: var(--font-size-body);
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.toc > ul > li:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Level 2 */
+.toc > ul > li > ul {
+  padding-left: var(--space-lg);
+  margin-top: 4px;
+  border-left: 2px solid var(--color-border);
+}
+
+.toc > ul > li > ul > li {
+  font-weight: 400;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  padding-left: var(--space-sm);
+}
+
+/* Level 3 */
+.toc > ul > li > ul > li > ul {
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--color-border);
+}
+
+.toc > ul > li > ul > li > ul > li {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding-left: var(--space-sm);
+}
+
+/* TOC entry with dotted leader */
+.toc-entry {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.toc-entry a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  float: left;
+  padding-right: 4px;
+  background-color: var(--color-bg-page);
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Chapter-number badge — pill chip in the brand accent, only rendered for
+   headings that start with a manual number (e.g. "1", "5.3.1"). */
+.toc-num {
+  display: inline-block;
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.8em;
+  line-height: 1.6;
+  padding: 0 8px;
+  border-radius: 999px;
+  background-color: var(--color-mist, #E3FCF7);
+  color: var(--color-brand-accessible);
+  border: 1px solid #B8E7D6;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.toc > ul > li > ul .toc-num,
+.toc > ul > li > ul > li > ul .toc-num {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+  font-weight: 600;
+}
+
+.toc-label {
+  white-space: nowrap;
+}
+
+.toc-entry::after {
+  content: " ........................................................................................................";
+  letter-spacing: 1px;
+  color: var(--color-border);
+  font-size: 0.85em;
+}
+
+.toc > ul > li > .toc-entry::after {
+  color: #B8E7D6;
+}
+
+.toc-entry .toc-page {
+  float: right;
+  padding-left: 4px;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  position: relative;
+}
+
+/* =============================================================================
+   DEFINITION LISTS
+   ============================================================================= */
+
+dl {
+  margin-bottom: var(--space-md);
+}
+
+dt {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: var(--space-sm);
+}
+
+dd {
+  padding-left: var(--space-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+/* =============================================================================
+   KEYBOARD / ABBREVIATIONS
+   ============================================================================= */
+
+kbd {
+  font-family: var(--font-code);
+  font-size: 0.85em;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--color-text-primary);
+}
+
+abbr[title] {
+  text-decoration: underline dotted var(--color-text-muted);
+  cursor: help;
+}
+
+/* =============================================================================
+   MARK / HIGHLIGHT
+   ============================================================================= */
+
+mark {
+  background-color: #FFF8C5;
+  color: var(--color-text-primary);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+/* =============================================================================
+   PRIORITY BADGES (Recommendation headings)
+   ============================================================================= */
+
+.priority-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-left: 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+  line-height: 1.4;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.priority-1 {
+  background-color: #FFF0F0;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+}
+
+.priority-2 {
+  background-color: #FFF8E6;
+  color: #8A6200;
+  border: 1px solid #FFC010;
+}
+
+.priority-3 {
+  background-color: #E3FCF7;
+  color: var(--color-brand-accessible);
+  border: 1px solid #5EEAD4;
+}
+
+/* Keep badge + heading together */
+h1, h2, h3, h4, h5, h6 {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+/* =============================================================================
+   PRIORITY LEGEND (auto-injected before Recommendations)
+   ============================================================================= */
+
+.priority-legend {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-brand-accessible);
+  border-radius: 0 6px 6px 0;
+  padding: 16px 20px;
+  margin: var(--space-lg) 0 var(--space-xl);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.priority-legend-title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h4);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.priority-legend-table {
+  width: 100%;
+  font-size: var(--font-size-small);
+  margin-bottom: var(--space-md);
+}
+
+.priority-legend-table th,
+.priority-legend-table td {
+  border: 1px solid var(--color-table-border);
+  padding: 8px 13px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.priority-legend-table thead tr {
+  background-color: var(--color-table-header);
+}
+
+.priority-legend-table tbody tr:nth-child(even) {
+  background-color: var(--color-table-stripe);
+}
+
+.priority-legend-table td:first-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.priority-legend-notice {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+
+.priority-legend-notice strong {
+  color: var(--color-text-primary);
+}
+
+@media print {
+  .priority-badge,
+  .priority-1,
+  .priority-2,
+  .priority-3 {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .priority-legend {
+    background-color: var(--color-bg-secondary) !important;
+    border-left-color: var(--color-brand-accessible) !important;
+  }
+  .priority-legend-table thead tr {
+    background-color: var(--color-table-header) !important;
+  }
+  .priority-legend-table tbody tr:nth-child(even) {
+    background-color: var(--color-table-stripe) !important;
+  }
+}
+
+/* =============================================================================
+   Q&A PAIRS
+   ============================================================================= */
+
+.qa-block {
+  margin: var(--space-md) 0;
+  padding: 12px 16px 12px 48px;
+  border-radius: 6px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  position: relative;
+  line-height: 1.6;
+}
+
+.qa-block p {
+  margin-bottom: 0;
+}
+
+.qa-question {
+  background-color: #F0F5FF;
+  border-left: 4px solid var(--color-info);
+  margin-bottom: var(--space-xs);
+}
+
+.qa-answer {
+  background-color: var(--color-bg-secondary);
+  border-left: 4px solid var(--color-border);
+}
+
+.qa-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xsmall);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-inverse);
+}
+
+.qa-label-question {
+  background-color: var(--color-info);
+}
+
+.qa-label-answer {
+  background-color: var(--color-text-secondary);
+}
+
+@media print {
+  .qa-question {
+    background-color: #F0F5FF !important;
+    border-left-color: var(--color-info) !important;
+  }
+  .qa-answer {
+    background-color: var(--color-bg-secondary) !important;
+    border-left-color: var(--color-border) !important;
+  }
+  .qa-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* =============================================================================
+   CHECKLISTS (GFM task lists)
+   ============================================================================= */
+
+ul.contains-task-list,
+li.task-list-item {
+  list-style: none;
+  padding-left: 0;
+}
+
+li.task-list-item {
+  margin-bottom: var(--space-sm);
+  padding-left: 4px;
+  line-height: 1.6;
+}
+
+li.task-list-item::before {
+  content: none;
+}
+
+.task-list-item-checkbox {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  margin-left: 0;
+  vertical-align: middle;
+  border: 2px solid var(--color-text-secondary);
+  border-radius: 3px;
+  background-color: var(--color-bg-page);
+  position: relative;
+  top: -1px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.task-list-item-checkbox[checked] {
+  background-color: var(--color-brand-accessible);
+  border-color: var(--color-brand-accessible);
+}
+
+.task-list-item-checkbox[checked]::after {
+  content: "✓";
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  color: var(--color-text-inverse);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media print {
+  .task-list-item-checkbox,
+  .task-list-item-checkbox[checked] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .task-list-item-checkbox[checked] {
+    background-color: var(--color-brand-accessible) !important;
+    border-color: var(--color-brand-accessible) !important;
+  }
+}
+
+@media screen {
+  body {
+    background-color: #EEF2F1;
+  }
+
+  .cover-page,
+  .toc,
+  .content {
+    width: min(100%, 210mm);
+    margin-right: auto;
+    margin-left: auto;
+    box-shadow: 0 8px 28px var(--color-shadow);
+  }
+
+  .cover-page {
+    height: auto;
+    min-height: min(297mm, 100vh);
+    margin-bottom: var(--space-lg);
+  }
+
+  .toc,
+  .content {
+    padding: 20mm;
+    background-color: var(--color-bg-page);
+  }
+
+  .toc {
+    margin-bottom: var(--space-lg);
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .content {
+    margin-bottom: var(--space-lg);
+  }
+
+  .page-break {
+    margin-top: var(--space-xxl);
+    padding-top: var(--space-xl);
+    border-top: 2px solid var(--color-border);
+    page-break-before: auto;
+    break-before: auto;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .cover-page {
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  .cover-title {
+    font-size: 22pt;
+  }
+
+  .cover-stage {
+    top: 32px;
+    right: 24px;
+  }
+
+  .cover-classification {
+    bottom: 32px;
+    right: 24px;
+    left: 24px;
+  }
+
+  .toc,
+  .content {
+    padding: 32px 24px;
+  }
+}
+
+/* =============================================================================
+   PRINT MEDIA
+   ============================================================================= */
+
+@media print {
+  /* Base print overrides */
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+    font-size: var(--font-size-body);
+  }
+
+  /* Avoid orphaned headings */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  body > h1:first-of-type,
+  .content > h1:first-of-type,
+  article > h1:first-of-type {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  /* Keep these blocks together */
+  pre,
+  pre.shiki,
+  .code-block-wrapper,
+  .admonition,
+  figure,
+  table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Widows & orphans */
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* No blank pages from cover-page break */
+  .cover-page {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Keep table header on each page */
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* Avoid breaking a row across pages */
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Ensure colors render in print */
+  thead tr {
+    background-color: var(--color-table-header) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: var(--color-table-stripe) !important;
+  }
+
+  .admonition-note {
+    background-color: #F0F5FF !important;
+  }
+
+  .admonition-tip {
+    background-color: #E3FCF7 !important;
+  }
+
+  .admonition-warning {
+    background-color: #FFF8E6 !important;
+  }
+
+  .admonition-caution {
+    background-color: #FFF0F0 !important;
+  }
+
+  .admonition-important {
+    background-color: #F8F0FF !important;
+  }
+
+  pre,
+  pre.shiki {
+    background-color: var(--color-bg-secondary) !important;
+  }
+
+  code {
+    background-color: var(--color-bg-secondary) !important;
+  }
+
+  /* Hide interactive / screen-only UI */
+  nav:not(.toc),
+  .no-print,
+  button,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Links — show URL after link text for references */
+  a[href^="http"]::after,
+  a[href^="https"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--color-text-muted);
+    word-break: break-all;
+  }
+
+  /* Suppress URL display for internal anchors and cover page links */
+  a[href^="#"]::after,
+  .cover-page a::after,
+  .toc a::after {
+    content: none;
+  }
+}
+</style>
+</head>
+<body>
+  <section class="cover-page" aria-label="Document cover">
+  
+  <img class="cover-logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAyIiBoZWlnaHQ9IjI3OCIgdmlld0JveD0iMCAwIDExMDIgMjc4IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTgyLjMyMjkgMjguNjQ0NEM3MS41MzY3IDE1Ljg0NjkgNjIuMjQ4NSAyLjg0OTQ1IDYwLjM1MSAwLjE0OTk3MUM2MC4xNTEyIC0wLjA0OTk5MDMgNTkuODUxNSAtMC4wNDk5OTAzIDU5LjY1MTggMC4xNDk5NzFDNTcuNzU0MiAyLjg0OTQ1IDQ4LjQ2NjEgMTUuODQ2OSAzNy42Nzk4IDI4LjY0NDRDLTU0LjkwMTkgMTQ2LjcyMSA1Mi4yNjEzIDIyNi40MDYgNTIuMjYxMyAyMjYuNDA2TDUzLjE2MDEgMjI3LjAwNkM1My45NTkgMjM5LjMwMyA1NS45NTY1IDI1NyA1NS45NTY1IDI1N0g1OS45NTE0SDYzLjk0NjNDNjMuOTQ2MyAyNTcgNjUuOTQzOCAyMzkuNDAzIDY2Ljc0MjggMjI3LjAwNkw2Ny42NDE2IDIyNi4zMDZDNjcuNzQxNCAyMjYuMzA2IDE3NC45MDUgMTQ2LjcyMSA4Mi4zMjI5IDI4LjY0NDRaTTU5Ljk1MTQgMjI0LjYwNkM1OS45NTE0IDIyNC42MDYgNTUuMTU3NiAyMjAuNTA3IDUzLjg1OTIgMjE4LjQwN1YyMTguMjA4TDU5LjY1MTggODkuNjMyNUM1OS42NTE4IDg5LjIzMjYgNjAuMjUxMSA4OS4yMzI2IDYwLjI1MTEgODkuNjMyNUw2Ni4wNDM2IDIxOC4yMDhWMjE4LjQwN0M2NC43NDUzIDIyMC41MDcgNTkuOTUxNCAyMjQuNjA2IDU5Ljk1MTQgMjI0LjYwNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNjAuNTAxIDE5Ny41ODhMMjE1Ljg0NSA4OS4yOTkxTDIxNS43NDUgODlIMTgxLjAwMVY5Ni4yNzkxSDE4Ni42MDhDMTg4LjMxIDk2LjI3OTEgMTg5LjkxMiA5Ni45NzcgMTkxLjExNCA5OC4xNzM2QzE5Mi4zMTUgOTkuMzcwMiAxOTIuOTE2IDEwMC45NjYgMTkyLjkxNiAxMDIuNjYxTDE5MS45MTUgMjExLjY0N0MxOTEuOTE1IDIxNS4wMzcgMTg5LjExMiAyMTcuODI5IDE4NS43MDcgMjE3LjkyOUwxODAgMjE4LjAyOVYyMjUuMjA4SDIxMy44NDNWMjE4LjAyOUwyMTAuMzM4IDIxNy45MjlDMjA2LjkzNCAyMTcuODI5IDIwNC4xMyAyMTUuMDM3IDIwNC4xMyAyMTEuNjQ3VjEwOC45NDNMMjUyLjc5MiAyMjUuMjA4QzI1My40OTIgMjI2LjkwMyAyNTUuMDk0IDIyOCAyNTYuODk3IDIyOEMyNTguNjk5IDIyOCAyNjAuMzAxIDIyNi45MDMgMjYxLjAwMiAyMjUuMjA4TDMwOC41NjIgMTExLjUzNUwzMDkuMjYzIDIxMS42NDdDMzA5LjI2MyAyMTUuMTM3IDMwNi40NTkgMjE3LjkyOSAzMDIuOTU1IDIxOC4wMjlIMjk5LjM1VjIyNS4yMDhIMzM5VjIxOC4wMjlIMzMzLjU5M0MzMzAuMTg5IDIxOC4wMjkgMzI3LjM4NSAyMTUuMTM3IDMyNy4yODUgMjExLjc0N0wzMjYuOTg1IDEwMi43NkMzMjYuOTg1IDk5LjI3MDQgMzI5Ljc4OCA5Ni40Nzg1IDMzMy4xOTMgOTYuMzc4OEwzMzkgOTYuMjc5MVY4OUgzMDUuMTU3TDI2MC41MDEgMTk3LjU4OFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik01NzEuODY5IDIxNi45NTVDNTcwLjc2NCAyMTUuODQ5IDU3MC4xNjIgMjE0LjM0MiA1NzAuMTYyIDIxMi41MzNWMTU4LjY2M0M1NzAuMTYyIDE0OC40MTIgNTY3LjE1MSAxNDAuMzcyIDU2MS4xMjcgMTM0LjY0M0M1NTUuMjA1IDEyOC45MTUgNTQ2Ljk3MyAxMjYgNTM2LjczNCAxMjZDNTIyLjM3OCAxMjYgNTExLjAzNSAxMzEuODI5IDUwMy4xMDQgMTQzLjI4NkM1MDMuMDA0IDE0My40ODcgNTAyLjcwMyAxNDMuNTg4IDUwMi40MDIgMTQzLjU4OEM1MDIuMSAxNDMuNTg4IDUwMS45IDE0My4zODcgNTAxLjkgMTQzLjA4NUw0OTguMTg1IDEyOC43MTRINDkxLjk2MUw0NzYgMTM3Ljg1OVYxNDIuODg0SDQ4MC4xMTZDNDgyLjAyMyAxNDIuODg0IDQ4My42MjkgMTQzLjM4NyA0ODQuNzM0IDE0NC4zOTJDNDg1LjgzOCAxNDUuMzk3IDQ4Ni40NCAxNDYuOTA1IDQ4Ni40NCAxNDkuMDE1VjIxMi40MzJDNDg2LjQ0IDIxNC4yNDEgNDg1LjgzOCAyMTUuNzQ5IDQ4NC43MzQgMjE2Ljg1NEM0ODMuNjI5IDIxNy45NiA0ODIuMTI0IDIxOC41NjMgNDgwLjMxNyAyMTguNTYzSDQ3Ni4zMDFWMjI1Ljg5OUg1MTMuMDQyVjIxOC41NjNINTA5LjAyN0M1MDcuMjIgMjE4LjU2MyA1MDUuNzE0IDIxNy45NiA1MDQuNjEgMjE2Ljg1NEM1MDMuNTA2IDIxNS43NDkgNTAyLjkwMyAyMTQuMjQxIDUwMi45MDMgMjEyLjQzMlYxNzAuNjIzQzUwMi45MDMgMTY1LjI5NiA1MDQuMTA4IDE1OS45NyA1MDYuMzE3IDE1NC43NDRDNTA4LjYyNSAxNDkuNjE4IDUxMi4wMzggMTQ1LjI5NiA1MTYuNTU2IDE0MS45OEM1MjEuMDczIDEzOC42NjMgNTI2LjQ5NCAxMzcuMDU1IDUzMi43MTggMTM3LjA1NUM1MzkuNzQ1IDEzNy4wNTUgNTQ1LjA2NiAxMzkuMjY2IDU0OC4zNzggMTQzLjY4OEM1NTEuNjkxIDE0OC4xMTEgNTUzLjM5OCAxNTMuODM5IDU1My4zOTggMTYwLjY3M1YyMTIuNTMzQzU1My4zOTggMjE0LjM0MiA1NTIuNzk1IDIxNS44NDkgNTUxLjY5MSAyMTYuOTU1QzU1MC41ODcgMjE4LjA2IDU0OS4wODEgMjE4LjY2MyA1NDcuMjc0IDIxOC42NjNINTQzLjI1OVYyMjZINTgwVjIxOC42NjNINTc1Ljk4NUM1NzQuNDc5IDIxOC42NjMgNTczLjA3MyAyMTguMTYxIDU3MS44NjkgMjE2Ljk1NVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik05MDcuNTQ2IDk3LjIxMkM4OTcuMzkgOTEuODA0MSA4ODYuMDM5IDg5IDg3My43OTIgODlIODI2Vjk2LjMxMDdIODMwLjY4QzgzMi40NzIgOTYuMzEwNyA4MzQuMDY1IDk3LjAxMTcgODM1LjY1OCA5OC42MTRDODM3LjE1MiAxMDAuMTE2IDgzNy45NDggMTAxLjgxOSA4MzcuOTQ4IDEwMy42MjFWMjExLjM3OUM4MzcuOTQ4IDIxMy4xODEgODM3LjE1MiAyMTQuODg0IDgzNS42NTggMjE2LjM4NkM4MzQuMTY1IDIxNy44ODggODMyLjQ3MiAyMTguNjg5IDgzMC42OCAyMTguNjg5SDgyNlYyMjZIODczLjc5MkM4ODYuMDM5IDIyNiA4OTcuMzkgMjIzLjE5NiA5MDcuNTQ2IDIxNy43ODhDOTE3LjcwMSAyMTIuMzggOTI1Ljk2NiAyMDQuMzY4IDkzMS45NCAxOTQuMTU0QzkzNy45MTQgMTgzLjkzOSA5NDEgMTcxLjYyMSA5NDEgMTU3LjZDOTQxIDE0My41OCA5MzcuOTE0IDEzMS4zNjIgOTMxLjk0IDEyMS4wNDdDOTI1Ljg2NiAxMTAuNjMyIDkxNy43MDEgMTAyLjYyIDkwNy41NDYgOTcuMjEyWk05MjEuNzg0IDE1Ny40QzkyMS43ODQgMTcwLjIxOSA5MTkuNDk0IDE4MS4wMzQgOTE1LjAxMyAxODkuNzQ3QzkxMC41MzMgMTk4LjQ2IDkwNC41NTggMjA0Ljk2OSA4OTcuMTkgMjA5LjE3NUM4ODkuODIzIDIxMy4zODIgODgxLjY1OCAyMTUuNDg1IDg3Mi44OTYgMjE1LjQ4NUg4NjMuMjM4Qzg2MS40NDYgMjE1LjQ4NSA4NTkuODUzIDIxNC43ODQgODU4LjI2IDIxMy4xODFDODU2Ljc2NiAyMTEuNjc5IDg1NS45NyAyMDkuOTc3IDg1NS45NyAyMDguMTc0VjEwNi42MjZDODU1Ljk3IDEwNC44MjMgODU2LjY2NyAxMDMuMjIxIDg1OC4yNiAxMDEuNjE4Qzg1OS43NTMgMTAwLjExNiA4NjEuNDQ2IDk5LjMxNTEgODYzLjIzOCA5OS4zMTUxSDg3Mi44OTZDODgxLjY1OCA5OS4zMTUxIDg4OS44MjMgMTAxLjQxOCA4OTcuMTkgMTA1LjYyNEM5MDQuNTU4IDEwOS44MyA5MTAuNTMzIDExNi4zNCA5MTUuMDEzIDEyNS4wNTNDOTE5LjQ5NCAxMzMuNzY1IDkyMS43ODQgMTQ0LjU4MSA5MjEuNzg0IDE1Ny40WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEwNTMuOTcgMTY0LjcxMUMxMDQ5LjU1IDE1OS42MDMgMTA0MS4wMiAxNTUuMjk3IDEwMzAuOTkgMTUyLjk5M0MxMDQ0Ljg0IDE0Ni4wODMgMTA1MS45NiAxMzYuMzY5IDEwNTEuOTYgMTIzLjg1MUMxMDUxLjk2IDExNy4wNDEgMTA1MC4xNiAxMTAuOTMyIDEwNDYuNTQgMTA1LjcyNEMxMDQyLjkzIDEwMC41MTcgMTAzNy44MSA5Ni4zMTA3IDEwMzEuMjkgOTMuNDA2NEMxMDI0Ljc2IDkwLjUwMjIgMTAxNy4xMyA4OSAxMDA4LjUgODlIOTU0LjQwMlY5Ni4zMTA3SDk1OC43MThDOTYwLjUyNCA5Ni4zMTA3IDk2Mi4xMyA5Ny4wMTE3IDk2My43MzYgOTguNjE0Qzk2NS4yNDIgMTAwLjExNiA5NjYuMDQ1IDEwMS44MTkgOTY2LjA0NSAxMDMuNjIxVjIxMS4zNzlDOTY2LjA0NSAyMTMuMTgxIDk2NS4yNDIgMjE0Ljg4NCA5NjMuNzM2IDIxNi4zODZDOTYyLjIzMSAyMTcuODg4IDk2MC41MjQgMjE4LjY4OSA5NTguNzE4IDIxOC42ODlIOTU0VjIyNkgxMDEyLjcyQzEwMjEuNjUgMjI2IDEwMjkuOTggMjI0LjQ5OCAxMDM3LjUxIDIyMS40OTNDMTA0NS4wNCAyMTguNDg5IDEwNTEuMDYgMjE0LjA4MyAxMDU1LjM4IDIwOC4yNzRDMTA1OS43OSAyMDIuNDY2IDEwNjIgMTk1LjM1NSAxMDYyIDE4Ny4xNDNDMTA2MS45IDE3OC4zMyAxMDU5LjI5IDE3MC45MiAxMDUzLjk3IDE2NC43MTFaTTk4Ni42MjEgMjEzLjI4MUM5ODUuMTE1IDIxMS43NzkgOTg0LjMxMiAyMTAuMDc3IDk4NC4zMTIgMjA4LjI3NFYxNTkuOTA0SDEwMTIuMjJDMTAyMi4wNSAxNTkuOTA0IDEwMjkuNTggMTYyLjQwNyAxMDM0LjggMTY3LjQxNEMxMDQwLjAyIDE3Mi40MjIgMTA0Mi42MyAxNzguOTMxIDEwNDIuNjMgMTg2Ljk0M0MxMDQyLjYzIDE5MS43NSAxMDQxLjQyIDE5Ni40NTcgMTAzOS4yMiAyMDAuNzYzQzEwMzYuOTEgMjA1LjE3IDEwMzMuNDkgMjA4LjY3NSAxMDI4Ljg4IDIxMS4zNzlDMTAyNC4zNiAyMTQuMDgzIDEwMTguNzQgMjE1LjQ4NSAxMDEyLjIyIDIxNS40ODVIOTkxLjYzOUM5ODkuODMzIDIxNS41ODUgOTg4LjIyNyAyMTQuODg0IDk4Ni42MjEgMjEzLjI4MVpNOTg0LjQxMyAxNDkuNTg4VjEwNi42MjZDOTg0LjQxMyAxMDQuODIzIDk4NS4xMTUgMTAzLjIyMSA5ODYuNzIxIDEwMS42MThDOTg4LjIyNyAxMDAuMTE2IDk4OS45MzMgOTkuMzE1MSA5OTEuNzQgOTkuMzE1MUgxMDA0Ljk5QzEwMTQuNTIgOTkuMzE1MSAxMDIxLjU1IDEwMS43MTkgMTAyNS45NyAxMDYuMzI1QzEwMzAuMzggMTExLjAzMiAxMDMyLjU5IDExNy4wNDEgMTAzMi41OSAxMjQuNDUyQzEwMzIuNTkgMTMyLjA2MyAxMDMwLjQ4IDEzOC4xNzIgMTAyNi4zNyAxNDIuNzc5QzEwMjIuMjUgMTQ3LjI4NSAxMDE2LjAzIDE0OS41ODggMTAwNy44IDE0OS41ODhIOTg0LjQxM1oiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik00MzEuOTk5IDEzMi4zODdDNDI0LjMyOSAxMjguMTk2IDQxNS43NjMgMTI2IDQwNi41IDEyNkMzOTcuMjM3IDEyNiAzODguNTcxIDEyOC4wOTYgMzgxLjAwMSAxMzIuMzg3QzM3My4zMzEgMTM2LjU3OSAzNjcuMjU1IDE0Mi42NjcgMzYyLjc3MyAxNTAuMzUyQzM1OC4yOTEgMTU4LjAzNyAzNTYgMTY3LjAyIDM1NiAxNzdDMzU2IDE4Ni45OCAzNTguMjkxIDE5NS45NjMgMzYyLjc3MyAyMDMuNjQ4QzM2Ny4yNTUgMjExLjMzMyAzNzMuMzMxIDIxNy40MjEgMzgxLjAwMSAyMjEuNjEzQzM4OC42NzEgMjI1LjgwNCAzOTcuMjM3IDIyOCA0MDYuNSAyMjhDNDE1Ljc2MyAyMjggNDI0LjQyOSAyMjUuOTA0IDQzMS45OTkgMjIxLjYxM0M0MzkuNjY5IDIxNy40MjEgNDQ1Ljc0NSAyMTEuMzMzIDQ1MC4yMjcgMjAzLjY0OEM0NTQuNzA5IDE5NS45NjMgNDU3IDE4Ni45OCA0NTcgMTc3QzQ1NyAxNjcuMDIgNDU0LjcwOSAxNTguMDM3IDQ1MC4yMjcgMTUwLjM1MkM0NDUuNzQ1IDE0Mi41NjggNDM5LjY2OSAxMzYuNTc5IDQzMS45OTkgMTMyLjM4N1pNNDM5LjM3IDE3N0M0MzkuMzcgMTg5LjI3NiA0MzYuMzgyIDE5OS4yNTYgNDMwLjQwNSAyMDYuNDQyQzQyNC41MjkgMjEzLjYyOCA0MTYuNDYxIDIxNy4zMjEgNDA2LjUgMjE3LjMyMUMzOTYuNTQgMjE3LjMyMSAzODguNDcxIDIxMy42MjggMzgyLjU5NSAyMDYuNDQyQzM3Ni42MTggMTk5LjI1NiAzNzMuNjMgMTg5LjI3NiAzNzMuNjMgMTc3QzM3My42MyAxNjQuNzI0IDM3Ni42MTggMTU0Ljc0NCAzODIuNTk1IDE0Ny41NThDMzg4LjQ3MSAxNDAuMzcyIDM5Ni41NCAxMzYuNjc5IDQwNi41IDEzNi42NzlDNDE2LjQ2MSAxMzYuNjc5IDQyNC41MjkgMTQwLjM3MiA0MzAuNDA1IDE0Ny41NThDNDM2LjM4MiAxNTQuNzQ0IDQzOS4zNyAxNjQuNjI0IDQzOS4zNyAxNzdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNzg0Ljk5OSAxMzIuMzg3Qzc3Ny4zMjkgMTI4LjE5NiA3NjguNzYzIDEyNiA3NTkuNSAxMjZDNzUwLjIzNyAxMjYgNzQxLjU3MSAxMjguMDk2IDczNC4wMDEgMTMyLjM4N0M3MjYuMzMxIDEzNi41NzkgNzIwLjI1NSAxNDIuNjY3IDcxNS43NzMgMTUwLjM1MkM3MTEuMjkxIDE1OC4wMzcgNzA5IDE2Ny4wMiA3MDkgMTc3QzcwOSAxODYuOTggNzExLjI5MSAxOTUuOTYzIDcxNS43NzMgMjAzLjY0OEM3MjAuMjU1IDIxMS4zMzMgNzI2LjMzMSAyMTcuNDIxIDczNC4wMDEgMjIxLjYxM0M3NDEuNjcxIDIyNS44MDQgNzUwLjIzNyAyMjggNzU5LjUgMjI4Qzc2OC43NjMgMjI4IDc3Ny40MjkgMjI1LjkwNCA3ODQuOTk5IDIyMS42MTNDNzkyLjY2OSAyMTcuNDIxIDc5OC43NDUgMjExLjMzMyA4MDMuMjI3IDIwMy42NDhDODA3LjcwOSAxOTUuOTYzIDgxMCAxODYuOTggODEwIDE3N0M4MTAgMTY3LjAyIDgwNy43MDkgMTU4LjAzNyA4MDMuMjI3IDE1MC4zNTJDNzk4Ljc0NSAxNDIuNTY4IDc5Mi41NjkgMTM2LjU3OSA3ODQuOTk5IDEzMi4zODdaTTc5Mi4zNyAxNzdDNzkyLjM3IDE4OS4yNzYgNzg5LjM4MSAxOTkuMjU2IDc4My40MDUgMjA2LjQ0MkM3NzcuNTI4IDIxMy42MjggNzY5LjQ2IDIxNy4zMjEgNzU5LjUgMjE3LjMyMUM3NDkuNTM5IDIxNy4zMjEgNzQxLjQ3MSAyMTMuNjI4IDczNS41OTUgMjA2LjQ0MkM3MjkuNjE4IDE5OS4yNTYgNzI2LjYzIDE4OS4yNzYgNzI2LjYzIDE3N0M3MjYuNjMgMTY0LjYyNCA3MjkuNjE4IDE1NC43NDQgNzM1LjU5NSAxNDcuNTU4Qzc0MS40NzEgMTQwLjM3MiA3NDkuNTM5IDEzNi42NzkgNzU5LjUgMTM2LjY3OUM3NjkuNDYgMTM2LjY3OSA3NzcuNTI4IDE0MC4zNzIgNzgzLjQwNSAxNDcuNTU4Qzc4OS4yODIgMTU0Ljc0NCA3OTIuMzcgMTY0LjYyNCA3OTIuMzcgMTc3WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTY0Mi42NCAxMjZDNjM0LjYxNCAxMjYgNjI3LjI5MiAxMjcuNzA0IDYyMC42NzEgMTMxLjExM0M2MTQuMDUgMTM0LjUyMiA2MDguODM0IDEzOS4xMzUgNjA1LjEyMiAxNDUuMDVDNjAxLjQxMSAxNTAuODY1IDU5OS41MDUgMTU3LjM4MyA1OTkuNTA1IDE2NC4zMDFDNTk5LjUwNSAxNzAuNTE3IDYwMC45MDkgMTc2LjIzMiA2MDMuODE4IDE4MS4zNDZDNjA2LjYyNyAxODYuMjU5IDYxMC40MzkgMTkwLjM2OSA2MTUuMjU0IDE5My43NzhMNjAwLjkwOSAyMTMuMjNDNTk5LjEwMyAyMTUuNjM2IDU5OC45MDMgMjE4Ljg0NCA2MDAuMjA3IDIyMS40NTFDNjAxLjYxMSAyMjQuMTU4IDYwNC4yMTkgMjI1Ljc2MyA2MDcuMjI5IDIyNS43NjNINjExLjM0MkM2MDcuMzI5IDIyOC40NyA2MDQuMTE5IDIzMS42NzggNjAxLjkxMiAyMzUuNDg4QzU5OS4zMDQgMjM5Ljc5OSA1OTggMjQ0LjMxMSA1OTggMjQ4LjkyM0M1OTggMjU3LjU0NiA2MDEuODEyIDI2NC42NjUgNjA5LjMzNSAyNjkuOTc5QzYxNi43NTkgMjc1LjI5MyA2MjcuMTkxIDI3OCA2NDAuMzMyIDI3OEM2NDkuNDYxIDI3OCA2NTguMTg4IDI3Ni40OTYgNjY2LjExMyAyNzMuNTg4QzY3NC4xMzggMjcwLjY4MSA2ODAuNjU4IDI2Ni4zNjkgNjg1LjQ3MyAyNjAuNzU1QzY5MC4zODkgMjU1LjE0IDY5Mi44OTcgMjQ4LjMyMiA2OTIuODk3IDI0MC41MDFDNjkyLjg5NyAyMzIuMjggNjg5Ljg4NyAyMjYuNDY0IDY4Mi44NjUgMjIwLjg1QzY3Ni44NDcgMjE2LjEzNyA2NjcuNDE3IDIxMy42MzEgNjU1LjY4IDIxMy42MzFINjE1LjU1NUM2MTUuNDU1IDIxMy42MzEgNjE1LjM1NCAyMTMuNTMgNjE1LjM1NCAyMTMuNTNDNjE1LjM1NCAyMTMuNTMgNjE1LjI1NCAyMTMuMzMgNjE1LjM1NCAyMTMuMjNMNjI1Ljc4NyAxOTkuMTkzQzYyOC41OTYgMjAwLjQ5NiA2MzEuMjA0IDIwMS4yOTggNjMzLjUxMSAyMDEuNzk5QzYzNS45MTggMjAyLjMwMSA2MzguNjI3IDIwMi41MDEgNjQxLjYzNiAyMDIuNTAxQzY1MC4wNjMgMjAyLjUwMSA2NTcuNjg3IDIwMC43OTcgNjY0LjMwNyAxOTcuMzg4QzY3MC45MjggMTkzLjk3OSA2NzYuMjQ1IDE4OS4zNjcgNjgwLjA1NyAxODMuNDUxQzY4My44NjggMTc3LjYzNiA2ODUuNzc0IDE3MS4xMTkgNjg1Ljc3NCAxNjQuMjAxQzY4NS43NzQgMTU2Ljc4MSA2ODIuMTYzIDE0My4yNDUgNjcyLjMzMiAxMzYuMzI3QzY3Mi4zMzIgMTM2LjIyNyA2NzIuNDMzIDEzNi4yMjcgNjcyLjQzMyAxMzYuMjI3TDY5NCAxMzguNjMzVjEyOC43MDdINjU5LjQ5MkM2NTQuMDc1IDEyNi45MDIgNjQ4LjQ1OCAxMjYgNjQyLjY0IDEyNlpNNjU0LjY3NyAxODguNzY1QzY1MC44NjUgMTkwLjc3IDY0Ni43NTIgMTkxLjg3MyA2NDIuNjQgMTkxLjg3M0M2MzUuOTE5IDE5MS44NzMgNjMwIDE4OS40NjcgNjI0Ljk4NCAxODQuNzU1QzYxOS45NjkgMTgwLjA0MiA2MTcuNDYxIDE3My4xMjQgNjE3LjQ2MSAxNjQuMzAxQzYxNy40NjEgMTU1LjQ3OCA2MTkuOTY5IDE0OC41NTkgNjI0Ljk4NCAxNDMuODQ3QzYzMCAxMzkuMTM1IDYzNS45MTkgMTM2LjcyOCA2NDIuNjQgMTM2LjcyOEM2NDYuODUzIDEzNi43MjggNjUwLjg2NSAxMzcuNzMxIDY1NC42NzcgMTM5LjgzNkM2NTguNDg5IDE0MS44NDIgNjYxLjU5OSAxNDQuOTUgNjY0LjEwNyAxNDkuMDYxQzY2Ni41MTQgMTUzLjE3MiA2NjcuODE4IDE1OC4yODUgNjY3LjgxOCAxNjQuMzAxQzY2Ny44MTggMTcwLjQxNyA2NjYuNjE0IDE3NS41MyA2NjQuMTA3IDE3OS41NDFDNjYxLjY5OSAxODMuNjUyIDY1OC40ODkgMTg2LjY2IDY1NC42NzcgMTg4Ljc2NVpNNjI3LjQ5MiAyMjUuNjYySDY1NC42NzdDNjYyLjIwMSAyMjUuNjYyIDY2Ny4wMTYgMjI3LjE2NiA2NzAuMjI2IDIzMC4zNzVDNjczLjQzNiAyMzMuNTgzIDY3NS4wNDEgMjM3Ljg5NCA2NzUuMDQxIDI0Mi45MDhDNjc1LjA0MSAyNTAuMjI3IDY3Mi4xMzIgMjU2LjI0MyA2NjYuMzE0IDI2MC43NTVDNjYwLjQ5NSAyNjUuMjY3IDY1Mi42NzEgMjY3LjU3MyA2NDMuMDQxIDI2Ny41NzNDNjM0LjYxNCAyNjcuNTczIDYyNy41OTIgMjY1LjY2OCA2MjIuNDc2IDI2Mi4wNThDNjE3LjM2IDI1OC40NDkgNjE0Ljc1MiAyNTIuOTM0IDYxNC43NTIgMjQ1LjkxNkM2MTQuNzUyIDI0MS41MDQgNjE1Ljk1NiAyMzcuMzkzIDYxOC4zNjQgMjMzLjc4NEM2MjAuNzcxIDIzMC4xNzQgNjIzLjY4IDIyNy41NjcgNjI3LjQ5MiAyMjUuNjYyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEwODIuMzUgMjI0LjMyN0MxMDgwLjM3IDIyMy4yNDQgMTA3OC44OCAyMjEuNjY5IDEwNzcuNjkgMjE5Ljc5OUMxMDc2LjYgMjE3LjgzMSAxMDc2IDIxNS43NjQgMTA3NiAyMTMuNUMxMDc2IDIxMS4yMzYgMTA3Ni42IDIwOS4wNzEgMTA3Ny42OSAyMDcuMjAxQzEwNzguNzggMjA1LjIzMiAxMDgwLjM3IDIwMy43NTYgMTA4Mi4zNSAyMDIuNjczQzEwODQuMzQgMjAxLjU5MSAxMDg2LjUyIDIwMSAxMDg5IDIwMUMxMDkxLjQ4IDIwMSAxMDkzLjY2IDIwMS41OTEgMTA5NS42NSAyMDIuNjczQzEwOTcuNjMgMjAzLjc1NiAxMDk5LjEyIDIwNS4zMzEgMTEwMC4zMSAyMDcuMjAxQzExMDEuNCAyMDkuMTY5IDExMDIgMjExLjIzNiAxMTAyIDIxMy41QzExMDIgMjE1Ljc2NCAxMTAxLjQgMjE3LjkyOSAxMTAwLjMxIDIxOS43OTlDMTA5OS4yMiAyMjEuNzY4IDEwOTcuNjMgMjIzLjI0NCAxMDk1LjY1IDIyNC4zMjdDMTA5My42NiAyMjUuNDA5IDEwOTEuNDggMjI2IDEwODkgMjI2QzEwODYuNjIgMjI2IDEwODQuMzQgMjI1LjQwOSAxMDgyLjM1IDIyNC4zMjdaTTEwOTQuNTYgMjIyLjg1QzEwOTYuMjQgMjIxLjk2NSAxMDk3LjQ0IDIyMC41ODcgMTA5OC40MyAyMTkuMDEyQzEwOTkuMzIgMjE3LjMzOSAxMDk5LjgyIDIxNS40NjkgMTA5OS44MiAyMTMuNDAyQzEwOTkuODIgMjExLjMzNSAxMDk5LjMyIDIwOS40NjUgMTA5OC40MyAyMDcuNzkxQzEwOTcuNTMgMjA2LjExOCAxMDk2LjI0IDIwNC44MzkgMTA5NC41NiAyMDMuOTUzQzEwOTIuODcgMjAzLjA2NyAxMDkxLjA4IDIwMi41NzUgMTA4OSAyMDIuNTc1QzEwODYuOTIgMjAyLjU3NSAxMDg1LjEzIDIwMy4wNjcgMTA4My40NCAyMDMuOTUzQzEwODEuNzYgMjA0LjgzOSAxMDgwLjU2IDIwNi4yMTcgMTA3OS41NyAyMDcuNzkxQzEwNzguNjggMjA5LjQ2NSAxMDc4LjE4IDIxMS4zMzUgMTA3OC4xOCAyMTMuNDAyQzEwNzguMTggMjE1LjQ2OSAxMDc4LjY4IDIxNy4zMzkgMTA3OS41NyAyMTkuMDEyQzEwODAuNDcgMjIwLjY4NSAxMDgxLjc2IDIyMS45NjUgMTA4My40NCAyMjIuODVDMTA4NS4xMyAyMjMuNzM2IDEwODYuOTIgMjI0LjIyOCAxMDg5IDIyNC4yMjhDMTA5MS4wOCAyMjQuMjI4IDEwOTIuOTcgMjIzLjgzNSAxMDk0LjU2IDIyMi44NVpNMTA4My42NCAyMTkuNDA2VjIxOC41MkwxMDgzLjg0IDIxOC40MjFIMTA4NC40NEMxMDg0LjYzIDIxOC40MjEgMTA4NC44MyAyMTguMzIzIDEwODQuOTMgMjE4LjIyNEMxMDg1LjEzIDIxOC4wMjggMTA4NS4xMyAyMTcuOTI5IDEwODUuMTMgMjE3LjczMlYyMDguNTc5QzEwODUuMTMgMjA4LjM4MiAxMDg1LjAzIDIwOC4xODUgMTA4NC45MyAyMDguMDg3QzEwODQuNzMgMjA3Ljg5IDEwODQuNjMgMjA3Ljg5IDEwODQuNDQgMjA3Ljg5SDEwODMuODRMMTA4My42NCAyMDcuNzkxVjIwNi45MDZMMTA4My44NCAyMDYuODA3SDEwODlDMTA5MC40OSAyMDYuODA3IDEwOTEuNTggMjA3LjEwMiAxMDkyLjQ3IDIwNy43OTFDMTA5My4zNyAyMDguNDggMTA5My43NiAyMDkuMzY2IDEwOTMuNzYgMjEwLjU0N0MxMDkzLjc2IDIxMS40MzMgMTA5My40NyAyMTIuMzE5IDEwOTIuNzcgMjEyLjkwOUMxMDkyLjA4IDIxMy41OTggMTA5MS4yOCAyMTMuOTkyIDEwOTAuMjkgMjE0LjA5MUwxMDkxLjQ4IDIxNC40ODRMMTA5My43NiAyMTguMTI2QzEwOTMuOTYgMjE4LjQyMSAxMDk0LjE2IDIxOC41MiAxMDk0LjQ2IDIxOC41MkgxMDk1LjA1TDEwOTUuMTUgMjE4LjYxOFYyMTkuNTA0TDEwOTUuMDUgMjE5LjYwMkgxMDkxLjk4TDEwOTEuNzggMjE5LjUwNEwxMDg4LjYgMjE0LjE4OUgxMDg3LjgxVjIxNy43MzJDMTA4Ny44MSAyMTcuOTI5IDEwODcuOTEgMjE4LjEyNiAxMDg4LjAxIDIxOC4yMjRDMTA4OC4yMSAyMTguNDIxIDEwODguMzEgMjE4LjQyMSAxMDg4LjUgMjE4LjQyMUgxMDg5LjFMMTA4OS4zIDIxOC41MlYyMTkuNDA2TDEwODkuMSAyMTkuNTA0SDEwODMuODRMMTA4My42NCAyMTkuNDA2Wk0xMDg4LjcgMjEzLjAwOEMxMDg5LjUgMjEzLjAwOCAxMDkwLjE5IDIxMi44MTEgMTA5MC41OSAyMTIuMzE5QzEwOTAuOTggMjExLjkyNSAxMDkxLjI4IDIxMS4yMzYgMTA5MS4yOCAyMTAuNDQ5QzEwOTEuMjggMjA5LjY2MSAxMDkxLjA4IDIwOS4wNzEgMTA5MC42OSAyMDguNTc5QzEwOTAuMjkgMjA4LjA4NyAxMDg5LjY5IDIwNy44OSAxMDg5IDIwNy44OUgxMDg4LjZDMTA4OC40IDIwNy44OSAxMDg4LjIxIDIwNy45ODggMTA4OC4xMSAyMDguMDg3QzEwODcuOTEgMjA4LjI4MyAxMDg3LjkxIDIwOC4zODIgMTA4Ny45MSAyMDguNTc5VjIxMy4wMDhIMTA4OC43WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+" alt="MongoDB" />
+  <div class="cover-accent"></div>
+  <h1 class="cover-title">Markdown to PDF 샘플 리포트</h1>
+  <p class="cover-subtitle">다국어 렌더링 검증</p>
+  <p class="cover-project"><span>Project</span><strong>문서 자동화 PoC</strong></p>
+  <p class="cover-customer"><span>Prepared for</span><strong>샘플 고객사</strong></p>
+  <div class="cover-meta"><p class="cover-version"><strong>Version:</strong> 1.0</p><p class="cover-date"><strong>Date:</strong> 2026-08-07</p></div>
+  <div class="cover-participants"><span class="cover-participants-label">Participants</span>· 김민서, 플랫폼 엔지니어, 샘플 고객사 &lt;minseo@example.com&gt;<br>· md2pdf Team, Documentation Engineering, MongoDB &lt;docs@example.com&gt;</div>
+  <div class="cover-classification"><span class="cover-classification-badge confidential">Confidential</span></div>
+</section>
+  <nav class="toc" aria-label="Table of contents"><h2 class="toc-title">Table of Contents</h2><ul><li><span class="toc-entry"><a href="#1-요약"><span class="toc-num">1</span><span class="toc-label">요약</span></a></span></li><li><span class="toc-entry"><a href="#2-주요-관찰"><span class="toc-num">2</span><span class="toc-label">주요 관찰</span></a></span><ul><li><span class="toc-entry"><a href="#21-문서-구조"><span class="toc-num">2.1</span><span class="toc-label">문서 구조</span></a></span></li><li><span class="toc-entry"><a href="#22-검증-결과"><span class="toc-num">2.2</span><span class="toc-label">검증 결과</span></a></span></li></ul></li><li><span class="toc-entry"><a href="#3-권장-실행-순서"><span class="toc-num">3</span><span class="toc-label">권장 실행 순서</span></a></span></li></ul></nav>
+  <main class="content"><h1 id="1-요약">1 요약</h1>
+<p>이 문서는 Markdown 원본 하나에서 self-contained HTML과 PDF를 함께 생성하는 문서 자동화
+흐름을 검증하기 위한 한국어 샘플입니다. 표지 메타데이터, 본문 계층, 표, 코드 블록,
+주의 박스와 체크리스트가 PDF에서도 읽기 쉽게 유지되는지 확인합니다.</p>
+<div class="admonition admonition-note">
+<div class="admonition-title">Note</div>
+<p>이 문서의 고객명과 수치는 렌더링 예시를 위한 가상 값입니다.</p>
+</div>
+<h1 id="2-주요-관찰">2 주요 관찰</h1>
+<h2 id="21-문서-구조">2.1 문서 구조</h2>
+<p>문서 구조는 제목과 핵심 결과를 먼저 제시한 뒤, 관찰 결과와 실행 순서를 이어서 설명하는
+방식으로 구성했습니다. 긴 문장이 페이지 경계를 넘어갈 때도 문단 간격과 줄바꿈이
+자연스럽게 유지되어야 합니다.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>검증 항목</th><th>현재 상태</th><th>권장 방향</th></tr></thead><tbody><tr><td>표지 메타데이터</td><td>YAML front matter 사용</td><td>필수 필드 유지</td></tr><tr><td>검색 결과 표</td><td>GFM 테이블 렌더링</td><td>열 너비와 줄바꿈 확인</td></tr><tr><td>코드 예시</td><td>JavaScript 구문 강조</td><td>복사 가능한 텍스트 유지</td></tr><tr><td>다국어 본문</td><td>한국어 글리프 포함</td><td>PDF에서 글자 누락 확인</td></tr></tbody></table>
+<p>다음 예시는 계약 상태를 조회하는 간단한 MongoDB 쿼리입니다.</p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#24292E">db.contracts.</span><span style="color:#6F42C1">find</span><span style="color:#24292E">(</span></span>
+<span class="line"><span style="color:#24292E">  { status: </span><span style="color:#032F62">"ACTIVE"</span><span style="color:#24292E">, region: </span><span style="color:#032F62">"KR"</span><span style="color:#24292E"> },</span></span>
+<span class="line"><span style="color:#24292E">  { _id: </span><span style="color:#005CC5">0</span><span style="color:#24292E">, contract_id: </span><span style="color:#005CC5">1</span><span style="color:#24292E">, customer_name: </span><span style="color:#005CC5">1</span><span style="color:#24292E"> }</span></span>
+<span class="line"><span style="color:#24292E">).</span><span style="color:#6F42C1">sort</span><span style="color:#24292E">({ updated_at: </span><span style="color:#D73A49">-</span><span style="color:#005CC5">1</span><span style="color:#24292E"> });</span></span></code></pre>
+<h2 id="22-검증-결과">2.2 검증 결과</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> HTML 제목과 표지 제목이 일치함</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 표 헤더와 본문 행이 페이지에서 구분됨</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 한국어 문장과 숫자가 PDF에 표시됨</li>
+<li class="task-list-item"><input type="checkbox" disabled> 실제 운영 데이터 기반의 성능 측정은 별도 수행</li>
+</ul>
+<h1 id="3-권장-실행-순서">3 권장 실행 순서</h1>
+<ol>
+<li>Markdown front matter와 제목 계층을 검토합니다.</li>
+<li>HTML을 먼저 열어 링크, 표, 코드 블록을 확인합니다.</li>
+<li>PDF의 모든 페이지를 실제 인쇄 결과로 검토합니다.</li>
+<li>문제가 있으면 생성된 파일이 아니라 Markdown 또는 스타일을 수정합니다.</li>
+</ol>
+<p>이 샘플은 네 가지 언어 문서가 동일한 렌더링 파이프라인을 공유할 수 있음을 보여주는
+기준 파일입니다.</p></main>
+</body>
+</html>
