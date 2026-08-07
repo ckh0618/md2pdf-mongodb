@@ -1,7 +1,7 @@
 ---
 title: Markdown to PDF 샘플 리포트
 subtitle: 다국어 렌더링 검증
-customer: 샘플 고객사
+customer: 고객사 A
 project: 문서 자동화 PoC
 brand: MongoDB
 version: "1.0"
@@ -15,10 +15,10 @@ author:
   org: MongoDB
   email: docs@example.com
 participants:
-  - name: 김민서
+  - name: 고객 담당자 A
     title: 플랫폼 엔지니어
-    org: 샘플 고객사
-    email: minseo@example.com
+    org: 고객사 A
+    email: customer-a@example.com
   - name: md2pdf Team
     title: Documentation Engineering
     org: MongoDB

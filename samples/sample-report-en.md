@@ -1,7 +1,7 @@
 ---
 title: Markdown to PDF Sample Report
 subtitle: Multilingual Rendering Validation
-customer: Example Customer
+customer: Customer A
 project: Document Automation PoC
 brand: MongoDB
 version: "1.0"
@@ -15,10 +15,10 @@ author:
   org: MongoDB
   email: docs@example.com
 participants:
-  - name: Alex Morgan
+  - name: Customer Representative A
     title: Platform Engineer
-    org: Example Customer
-    email: alex@example.com
+    org: Customer A
+    email: customer-a@example.com
   - name: md2pdf Team
     title: Documentation Engineering
     org: MongoDB

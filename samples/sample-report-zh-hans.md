@@ -1,7 +1,7 @@
 ---
 title: Markdown 转 PDF 示例报告
 subtitle: 多语言渲染验证
-customer: 示例客户
+customer: 客户 A
 project: 文档自动化 PoC
 brand: MongoDB
 version: "1.0"
@@ -15,10 +15,10 @@ author:
   org: MongoDB
   email: docs@example.com
 participants:
-  - name: 李明
+  - name: 客户代表 A
     title: 平台工程师
-    org: 示例客户
-    email: liming@example.com
+    org: 客户 A
+    email: customer-a@example.com
   - name: md2pdf Team
     title: Documentation Engineering
     org: MongoDB

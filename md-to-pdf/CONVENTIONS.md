@@ -44,9 +44,9 @@ Markdown이라면 이 차이를 알고 있어야 한다.
 
 ```yaml
 ---
-title: 위메이드 - 게임 인프라 최적화
+title: 고객사 A - 게임 인프라 최적화
 subtitle: MongoDB Consulting Report
-customer: 위메이드
+customer: 고객사 A
 project: 게임 플랫폼 DB 최적화
 brand: MongoDB
 version: "1.0"
@@ -55,19 +55,19 @@ language: ko
 audience: customer
 copyright_year: "2026"
 author:
-  name: Han Kim
+  name: 컨설턴트 A
   title: Consulting Engineer
   org: MongoDB
-  email: han.kim@mongodb.com
+  email: consultant@example.com
 participants:
-  - name: 김현우
+  - name: 고객 담당자 A
     title: DB팀 책임
-    org: 위메이드
-    email: hyunwoo.kim@wemade.com
-  - name: Han Kim
+    org: 고객사 A
+    email: customer-a@example.com
+  - name: 컨설턴트 A
     title: Consulting Engineer
     org: MongoDB
-    email: han.kim@mongodb.com
+    email: consultant@example.com
 ---
 ```
 
@@ -374,15 +374,15 @@ date: "2026-07-14"
 language: ko
 audience: customer
 author:
-  name: Han Kim
+  name: 컨설턴트 A
   title: Consulting Engineer
   org: MongoDB
-  email: han.kim@mongodb.com
+  email: consultant@example.com
 participants:
-  - name: 김현우
+  - name: 고객 담당자 A
     title: DB팀 책임
     org: 고객사
-    email: hyunwoo@customer.com
+    email: customer-a@example.com
 ---
 
 # 1 경영 요약
