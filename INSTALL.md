@@ -1,135 +1,251 @@
-# md2pdf Agent 설치 안내
+# md2pdf Agent Installation Contract
 
-이 저장소는 Markdown을 self-contained HTML과 PDF로 변환하는 Agent 스킬입니다. Agent가 스킬로
-사용하려면 저장소 전체를 Agent의 스킬 디렉터리에 설치해야 합니다. `SKILL.md`만 복사하면
-렌더러 소스와 문서가 없어 동작하지 않습니다.
+This document is an executable installation procedure for Agents. When an Agent is asked to
+install md2pdf, it must read this file, choose the requested installation scope, run the
+canonical installer, verify the result, and report the installed targets.
 
-## 사전 요구 사항
+The repository is compatible with both Codex and OpenCode. Install the complete repository
+directory because the Agent needs SKILL.md, the renderer source, and the renderer documentation.
+Do not install only SKILL.md.
+
+## Agent execution rules
+
+1. Preserve the source Markdown and all files outside the exact md2pdf skill target.
+2. Install only into a target whose final directory name is md2pdf.
+3. Do not use rsync --delete, recursive deletion, or a broad directory as the target.
+4. If the source clone has uncommitted changes, do not run git pull; report the condition first.
+5. Run the verification commands before reporting success.
+6. If a required command fails, stop and report the failed command and its output.
+
+## Requirements
 
 - Git
-- Node.js 20 이상
+- Node.js 20 or later
 - npm
-- Playwright Chromium을 설치할 수 있는 환경
+- rsync
+- A POSIX shell such as Bash, Zsh, or WSL
+- Chromium installation support for Playwright
 
-Node.js 버전은 다음 명령으로 확인합니다.
+Check the runtime before installation:
 
-```bash
+~~~bash
 node --version
-```
+npm --version
+git --version
+rsync --version
+~~~
 
-## 1. 저장소 받기
+## 1. Obtain the source repository
 
-```bash
+The source directory must contain both SKILL.md and md-to-pdf/package.json.
+
+For a new installation:
+
+~~~bash
 git clone https://github.com/ckh0618/md2pdf-mongodb.git
 cd md2pdf-mongodb
-```
+~~~
 
-이미 clone한 경우에는 최신 커밋을 받은 뒤 설치합니다.
+For an existing clean clone:
 
-```bash
+~~~bash
+git status --short
 git pull --ff-only
-```
+~~~
 
-## 2. Agent 스킬로 설치하기
+Do not run git pull when git status --short reports changes. Use the existing source as-is or
+ask the user how to handle the changes.
 
-Agent 호스트가 사용하는 스킬 루트를 먼저 확인합니다. 일반적인 Codex 환경에서는
-`$CODEX_HOME/skills` 또는 `$HOME/.agents/skills`를 사용합니다. 호스트 설정에 지정된 경로가
-있다면 그 경로를 우선합니다.
+## 2. Select the installation scope
 
-아래 예시는 스킬 루트를 `$HOME/.agents/skills`로 사용하는 Agent를 위한 명령입니다.
+Set INSTALL_SCOPE=global to install for the current user, or INSTALL_SCOPE=project to install
+inside the current project.
 
-```bash
-AGENT_SKILLS_ROOT="$HOME/.agents/skills"
-SKILL_TARGET="$AGENT_SKILLS_ROOT/md2pdf"
-mkdir -p "$SKILL_TARGET"
-rsync -a --exclude '.git' --exclude 'md-to-pdf/node_modules' --exclude 'md-to-pdf/dist' ./ "$SKILL_TARGET/"
-```
+| Agent | Global target | Project target |
+| --- | --- | --- |
+| Codex | $HOME/.agents/skills/md2pdf | $PROJECT_ROOT/.agents/skills/md2pdf |
+| OpenCode | $HOME/.config/opencode/skills/md2pdf | $PROJECT_ROOT/.opencode/skills/md2pdf |
 
-`$CODEX_HOME/skills`를 사용하는 Agent라면 `AGENT_SKILLS_ROOT`를
-`$CODEX_HOME/skills`로 바꿉니다. 설치가 끝난 뒤 다음 파일이 있어야 합니다.
+Codex also discovers project skills under .agents/skills. OpenCode also supports the
+Agent-compatible .agents/skills and Claude-compatible .claude/skills locations, but the
+OpenCode-specific targets above are preferred for explicit installation.
 
-```text
-<Agent 스킬 루트>/md2pdf/SKILL.md
-<Agent 스킬 루트>/md2pdf/md-to-pdf/package.json
-<Agent 스킬 루트>/md2pdf/md-to-pdf/src/cli.ts
-```
+## 3. Canonical installer
 
-Agent가 새 스킬을 검색하지 못하면 Agent를 다시 시작하거나 스킬 목록을 새로 고칩니다.
+Run this Bash block from the source repository root. It installs both Codex and OpenCode skills by
+default. Set INSTALL_CODEX=0 or INSTALL_OPENCODE=0 to install only one.
 
-## 3. 렌더러 설치 및 빌드
+~~~bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-스킬 디렉터리 안의 `md-to-pdf`에서 의존성을 설치하고 렌더러를 빌드합니다.
+SOURCE_DIR="\${SOURCE_DIR:-$(pwd)}"
+INSTALL_SCOPE="\${INSTALL_SCOPE:-global}"
+INSTALL_CODEX="\${INSTALL_CODEX:-1}"
+INSTALL_OPENCODE="\${INSTALL_OPENCODE:-1}"
 
-```bash
-AGENT_SKILLS_ROOT="${AGENT_SKILLS_ROOT:-$HOME/.agents/skills}"
-SKILL_TARGET="${SKILL_TARGET:-$AGENT_SKILLS_ROOT/md2pdf}"
-cd "$SKILL_TARGET/md-to-pdf"
-npm ci
-npm run build
-npx playwright install chromium
-```
+if [ ! -f "$SOURCE_DIR/SKILL.md" ] || [ ! -f "$SOURCE_DIR/md-to-pdf/package.json" ]; then
+  echo "ERROR: SOURCE_DIR must be the md2pdf repository root: $SOURCE_DIR" >&2
+  exit 1
+fi
 
-Linux에서 Chromium 시스템 의존성이 없는 경우에는 다음 명령을 사용할 수 있습니다.
+command -v rsync >/dev/null 2>&1 || {
+  echo "ERROR: rsync is required" >&2
+  exit 1
+}
 
-```bash
-npx playwright install --with-deps chromium
-```
+case "$INSTALL_SCOPE" in
+  global)
+    CODEX_TARGET="\${CODEX_TARGET:-$HOME/.agents/skills/md2pdf}"
+    OPENCODE_TARGET="\${OPENCODE_TARGET:-$HOME/.config/opencode/skills/md2pdf}"
+    ;;
+  project)
+    PROJECT_ROOT="\${PROJECT_ROOT:-$(git -C "$SOURCE_DIR" rev-parse --show-toplevel)}"
+    CODEX_TARGET="\${CODEX_TARGET:-$PROJECT_ROOT/.agents/skills/md2pdf}"
+    OPENCODE_TARGET="\${OPENCODE_TARGET:-$PROJECT_ROOT/.opencode/skills/md2pdf}"
+    ;;
+  *)
+    echo "ERROR: INSTALL_SCOPE must be global or project" >&2
+    exit 1
+    ;;
+esac
 
-설치가 정상인지 확인합니다.
+install_one() {
+  local target="$1"
+  local label="$2"
 
-```bash
-node dist/cli.js --help
-```
+  case "$target" in
+    */md2pdf) ;;
+    *)
+      echo "ERROR: refusing target that does not end in /md2pdf: $target" >&2
+      exit 1
+      ;;
+  esac
 
-## 사용 방법
+  mkdir -p "$target"
+  rsync -a \
+    --exclude '.git' \
+    --exclude '.agents' \
+    --exclude '.claude' \
+    --exclude '.opencode' \
+    --exclude '.playwright-mcp' \
+    --exclude 'md-to-pdf/node_modules' \
+    --exclude 'md-to-pdf/dist' \
+    "$SOURCE_DIR/" "$target/"
 
-Agent는 Markdown 원본을 보존한 상태에서 다음처럼 실행합니다.
+  test -f "$target/SKILL.md"
+  test -f "$target/md-to-pdf/package.json"
+  test -f "$target/md-to-pdf/src/cli.ts"
 
-```bash
-AGENT_SKILLS_ROOT="${AGENT_SKILLS_ROOT:-$HOME/.agents/skills}"
-SKILL_TARGET="${SKILL_TARGET:-$AGENT_SKILLS_ROOT/md2pdf}"
-node "$SKILL_TARGET/md-to-pdf/dist/cli.js" /absolute/path/document.md --stage customer
-```
+  (
+    cd "$target/md-to-pdf"
+    npm ci
+    npm run build
+    npx playwright install chromium
+    node dist/cli.js --help >/dev/null
+  )
 
-기본적으로 입력 파일 옆에 다음 두 파일이 생성됩니다.
+  echo "Installed $label skill at $target"
+}
 
-```text
+if [ "$INSTALL_CODEX" = "1" ]; then
+  install_one "$CODEX_TARGET" "Codex"
+fi
+
+if [ "$INSTALL_OPENCODE" = "1" ]; then
+  install_one "$OPENCODE_TARGET" "OpenCode"
+fi
+~~~
+
+The installer is repeatable. Running it again updates the same skill files, reinstalls locked npm
+dependencies, rebuilds the renderer, and leaves unrelated skills untouched.
+
+## 4. Verify the installation
+
+For every target printed by the installer, verify:
+
+~~~bash
+test -f <skill-target>/SKILL.md
+test -f <skill-target>/md-to-pdf/package.json
+test -f <skill-target>/md-to-pdf/dist/cli.js
+node <skill-target>/md-to-pdf/dist/cli.js --help
+~~~
+
+The final command must print the md-to-pdf usage text and exit successfully.
+
+Expected skill layout:
+
+~~~text
+<skill-target>/
+├── SKILL.md
+├── INSTALL.md
+├── md-to-pdf/
+│   ├── package.json
+│   ├── src/
+│   └── dist/cli.js
+└── agents/openai.yaml
+~~~
+
+## 5. Activate the skill
+
+### Codex
+
+Restart Codex or refresh its skill list. For a project installation, launch Codex from the
+project directory or one of its subdirectories. Confirm that the available skill is named
+md2pdf.
+
+### OpenCode
+
+Restart OpenCode or reload the session. OpenCode should list md2pdf in its native skill tool.
+The Agent can load it with:
+
+~~~text
+skill({ name: "md2pdf" })
+~~~
+
+If OpenCode does not list the skill, confirm that SKILL.md is located at exactly
+<project>/.opencode/skills/md2pdf/SKILL.md or
+$HOME/.config/opencode/skills/md2pdf/SKILL.md.
+
+## 6. Use the installed renderer
+
+After activation, run the renderer from the installed skill directory:
+
+~~~bash
+node <skill-target>/md-to-pdf/dist/cli.js /absolute/path/document.md --stage customer
+~~~
+
+The default outputs are:
+
+~~~text
 document.customer.html
 document.customer.pdf
-```
+~~~
 
-검토용 산출물은 검토 부록과 함께 생성합니다.
+For a review release:
 
-```bash
-AGENT_SKILLS_ROOT="${AGENT_SKILLS_ROOT:-$HOME/.agents/skills}"
-SKILL_TARGET="${SKILL_TARGET:-$AGENT_SKILLS_ROOT/md2pdf}"
-node "$SKILL_TARGET/md-to-pdf/dist/cli.js" \
+~~~bash
+node <skill-target>/md-to-pdf/dist/cli.js \
   /absolute/path/document.md \
   --stage review \
   --review-appendix /absolute/path/review.md
-```
+~~~
 
-자세한 Markdown 규칙과 메타데이터는 다음 문서를 참조합니다.
+Markdown is always the source of truth. Never edit generated HTML or PDF files directly.
 
-- [`SKILL.md`](SKILL.md): Agent 작업 절차와 명령
-- [`md-to-pdf/CONVENTIONS.md`](md-to-pdf/CONVENTIONS.md): Markdown 및 front matter 규칙
-- [`md-to-pdf/AUTHORING_PROMPT.md`](md-to-pdf/AUTHORING_PROMPT.md): 원시 Markdown 정리 규칙
-- [`md-to-pdf/README.md`](md-to-pdf/README.md): 렌더러 CLI 사용법
+## Updating an existing installation
 
-## 업데이트
+1. Check the source clone with git status --short.
+2. If it is clean, run git pull --ff-only.
+3. Run the canonical installer again with the same INSTALL_SCOPE and target variables.
+4. Repeat the verification and activation steps.
 
-원본 clone에서 최신 커밋을 받은 뒤 다시 복사하고, 의존성과 빌드를 갱신합니다.
+Do not remove old target files automatically. node_modules and dist are generated inside the
+skill target and should not be committed to the source repository.
 
-```bash
-AGENT_SKILLS_ROOT="${AGENT_SKILLS_ROOT:-$HOME/.agents/skills}"
-SKILL_TARGET="${SKILL_TARGET:-$AGENT_SKILLS_ROOT/md2pdf}"
-cd /path/to/md2pdf-mongodb
-git pull --ff-only
-rsync -a --exclude '.git' --exclude 'md-to-pdf/node_modules' --exclude 'md-to-pdf/dist' ./ "$SKILL_TARGET/"
-cd "$SKILL_TARGET/md-to-pdf"
-npm ci
-npm run build
-npx playwright install chromium
-```
+## References
 
-`node_modules`와 `dist`는 설치 시 생성되는 파일이므로 저장소에 커밋하지 않습니다.
+- [Codex: Build skills](https://developers.openai.com/codex/build-skills)
+- [OpenCode: Agent Skills](https://opencode.ai/docs/skills/)
+- [Renderer conventions](md-to-pdf/CONVENTIONS.md)
+- [Renderer CLI README](md-to-pdf/README.md)
