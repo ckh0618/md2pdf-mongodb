@@ -23,7 +23,7 @@ export interface DocumentMeta {
   copyrightYear?: string;
   classification: 'Confidential';
   stage: PdfStage;
-  /** Start every H1 chapter on a new page (default: none). */
+  /** Start every H1 chapter on a new page (default: page). */
   chapterBreak?: ChapterBreak;
 }
 

@@ -6,8 +6,8 @@ same DOM. The same Markdown produces the same pages on every machine and with ev
 
 ## Features
 
-- Dense, consistent A4 layout: chapters flow continuously, short tables/code stay together, long ones
-  continue on the next page
+- Consistent A4 layout: every chapter (H1) starts on a new page, content inside a chapter is dense;
+  short tables/code stay together, long ones continue on the next page
 - Bundled fonts (Pretendard, Noto Sans SC/TC, JetBrains Mono) — no system-font differences
 - CJK-aware emphasis: `**중요(필수)**입니다` and `**注意（重要）**的` render bold
 - Tables fitted without shrinking text: short values stay on one line, only prose and long URIs wrap
@@ -139,7 +139,7 @@ brand: Example
 customer: Example Customer
 project: Example Project
 author: Example Author
-chapter_break: none   # or page
+chapter_break: page   # default; none = continuous flow
 participants:
   - name: Example Participant
     org: Example Customer

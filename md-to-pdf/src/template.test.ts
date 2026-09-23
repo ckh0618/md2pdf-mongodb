@@ -145,3 +145,16 @@ test('appends author to participants only when missing from the declared list', 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('starts every chapter on a new page unless chapter_break is none', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'md-to-pdf-template-'));
+  try {
+    const cssPath = join(directory, 'styles.css');
+    await writeFile(cssPath, 'body { color: black; }');
+    const base = { title: 'T', customer: 'C', brand: 'B', language: 'en', date: '2026-01-01', classification: 'Confidential' as const, stage: 'customer' as const };
+    assert.match(buildHtml('<h1>A</h1>', [], base, cssPath), /<body class="md2pdf chapter-break-page">/);
+    assert.match(buildHtml('<h1>A</h1>', [], { ...base, chapterBreak: 'none' }, cssPath), /<body class="md2pdf chapter-break-none">/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

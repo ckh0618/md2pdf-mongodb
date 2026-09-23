@@ -27,9 +27,10 @@ test('code block geometry matches the wrap width used by codewrap', () => {
   assert.match(css, /font-variant-ligatures:\s*none/);
 });
 
-test('never shrinks fonts or forces a page per chapter by default', () => {
+test('breaks pages only per chapter and never shrinks fonts', () => {
   assert.doesNotMatch(css, /^h1\s*{[^}]*break-before:\s*page/m);
-  assert.match(css, /\.chapter-break-page \.content > h1\s*{[^}]*break-before:\s*page/s);
+  assert.match(css, /\.chapter-break-page \.content > h1\s*{[^}]*break-before:\s*page[^}]*margin-top:\s*0/s);
+  assert.match(css, /\.page-break \+ h1\s*{[^}]*break-before:\s*auto/s);
   assert.doesNotMatch(css, /a\[href\^="http"\]::after/);
   assert.doesNotMatch(css, /^table\s*{[^}]*break-inside:\s*avoid/m);
   assert.match(css, /\.keep-together,[^{]*{[^}]*break-inside:\s*avoid/s);

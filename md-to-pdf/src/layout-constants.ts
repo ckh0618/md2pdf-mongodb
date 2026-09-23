@@ -34,6 +34,8 @@ export const CODE_KEEP_TOGETHER_MAX_LINES = 20;
 /** Page-fill thresholds for the layout check (fraction of content height). */
 export const FILL_ERROR_BELOW = 0.5;
 export const FILL_WARNING_BELOW = 0.7;
+/** A chapter's last page filled less than this is reported as a spill-over. */
+export const CHAPTER_TAIL_WARNING_BELOW = 0.15;
 
 /** Smallest acceptable body glyph size in the PDF, in pt. */
 export const MIN_FONT_PT = 7;

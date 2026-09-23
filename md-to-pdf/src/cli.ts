@@ -57,8 +57,8 @@ function asParticipants(raw: unknown): Participant[] | undefined {
 }
 
 function parseChapterBreak(value: string | undefined): ChapterBreak {
-  if (value === undefined || value === '' || value === 'none' || value === 'false') return 'none';
-  if (value === 'page' || value === 'true') return 'page';
+  if (value === undefined || value === '' || value === 'page' || value === 'true') return 'page';
+  if (value === 'none' || value === 'false') return 'none';
   throw new Error(`chapter_break must be "none" or "page" (got "${value}").`);
 }
 
@@ -113,7 +113,7 @@ program
   .option('--brand <name>', 'Cover brand (default: Markdown Document)')
   .option('--project <name>', 'Project or application name shown on the cover')
   .option('--copyright-year <year>', 'Copyright year in the footer (default: current year)')
-  .option('--chapter-break <mode>', 'none (default) or page: start every H1 on a new page')
+  .option('--chapter-break <mode>', 'page (default): start every H1 on a new page; none: continuous flow')
   .option('--no-references', 'Keep external links inline instead of numbered references')
   .option('--no-check', 'Skip the layout check (not allowed for customer delivery)')
   .option('--pages <dir>', 'Write every PDF page as PNG (rasterized from the PDF) into the directory')

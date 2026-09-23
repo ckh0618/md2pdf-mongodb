@@ -41,7 +41,7 @@ date: "2026-07-14"                               # required (quote it)
 language: ko                                     # required BCP 47: ko, en, ja, zh-Hans, zh-Hant
 audience: customer
 copyright_year: "2026"
-chapter_break: none                              # none (default) | page
+chapter_break: page                              # page (default) | none
 references: true                                 # default true; false keeps URLs inline only
 author:
   name: Consultant A
@@ -64,7 +64,7 @@ participants:                                    # shown in exactly this order
 | `language` | yes | `<html lang>`, fonts, word breaking, references title. |
 | `subtitle`, `project`, `version`, `brand` | recommended | Cover. `app` is a synonym of `project`. |
 | `author`, `participants` | recommended | Cover participants block. `author` is appended if absent from the list. |
-| `chapter_break` | no | `page` starts every H1 on a new page. Default `none` (dense flow). |
+| `chapter_break` | no | Default `page`: every H1 starts on a new page. `none`: chapters flow continuously. |
 | `references` | no | `false` disables numbered link references. |
 | `audience` | stage | `customer` for customer output; review appendices use `internal-review`. |
 
@@ -81,8 +81,11 @@ Research missing metadata (project documents, kickoff notes, Glean) instead of g
 - Use at most H1–H3 (the TOC collects H1–H3). Turn deeper levels into bold lead-ins, lists, or tables.
 - Do not write a manual TOC; the renderer builds one with PDF page numbers.
 - A heading must be followed by content. Never end a section with a heading.
-- Chapters flow continuously by default. Use `chapter_break: page` only when the customer
-  explicitly wants one chapter per page.
+- Every H1 chapter starts on a new page (default). Inside a chapter the layout is dense: H2/H3
+  sections, tables and code flow continuously. Use `chapter_break: none` for short memos where
+  chapters should flow without page breaks.
+- Because chapters start on a new page, avoid chapters whose last few lines spill onto an extra
+  page (`chapter-tail` warning): tighten the text or split a long block earlier.
 
 ---
 
@@ -200,8 +203,9 @@ Authoring rules:
 
 - Use `-` for bullets, `1.` for ordered lists; keep nesting ≤ 3 levels.
 - Task lists: `- [ ]` / `- [x]`.
-- `<div class="page-break"></div>` only before a real appendix. Never put it next to a heading in
-  `chapter_break: page` mode (that produces an empty page).
+- H1 chapters already start on a new page, so `<div class="page-break"></div>` is rarely needed
+  (a page break directly before an H1 is ignored). Use it only to force a break before
+  something that is not an H1.
 
 ---
 
@@ -237,6 +241,7 @@ node md-to-pdf/dist/cli.js doc.md --stage customer --review-source-sha256 <sha25
 | Header / footer | CONFIDENTIAL badge, logo, customer, title, page x / y, © year MongoDB, Inc. |
 | Page | A4, margins 20 / 15 / 15 / 15 mm (top / side / bottom / side). |
 | Body | 10 pt, line height 1.5; Korean breaks between words, not syllables. |
+| Chapters | Every H1 starts on a new page (`chapter_break: none` to disable). |
 | Keep together | Headings stay with the next block; tables ≤ 12 rows, code ≤ 20 lines, admonitions, Q&A, images. |
 | HTML | Serialized from the same laid-out DOM as the PDF, self-contained (fonts and images inlined). |
 | Layout report | `<output>.layout.json` with per-page fill and every issue. |
@@ -247,7 +252,8 @@ node md-to-pdf/dist/cli.js doc.md --stage customer --review-source-sha256 <sha25
 | --- | --- | --- |
 | `residual-markdown-marker` | error | Literal `**`/`__`/`~~` in output. Fix per §4. |
 | `fallback-font` | error | Glyph not in bundled fonts. Remove emoji/dingbats (§12). |
-| `page-fill` | error < 50 %, warning < 70 % | Page ends early because the next block must stay together. Split/shorten the table or code, move the image, or reorder. |
+| `page-fill` | error < 50 %, warning < 70 % | Page ends early *inside* a chapter because the next block must stay together. Split/shorten the table or code, move the image, or reorder. Pages before a chapter start are exempt. |
+| `chapter-tail` | warning < 15 % | A chapter's last lines spilled onto their own page. Tighten the chapter or split a long block earlier. |
 | `orphan-heading` | error | Heading at the bottom of a page. Usually caused by a keep-together block after it; shorten or split that block. |
 | `table-overflow` | error | Table too wide even fully wrapped. Reduce columns (§5). |
 | `code-overflow` / `content-overflow` | error | Something wider than the text column. |

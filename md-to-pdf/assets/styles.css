@@ -140,10 +140,19 @@ h1 {
   border-bottom: 2px solid var(--color-brand-accessible);
 }
 
-/* Optional chapter-per-page mode (front matter: chapter_break: page). */
+/* Every H1 chapter starts on a new page (default; front matter
+   chapter_break: none turns this off). Margins survive a forced break, so
+   the chapter heading starts flush with the top of the page. */
 .chapter-break-page .content > h1 {
   break-before: page;
   page-break-before: always;
+  margin-top: 0;
+}
+
+/* An explicit page break right before a chapter must not add a blank page. */
+.chapter-break-page .content > .page-break + h1 {
+  break-before: auto;
+  page-break-before: auto;
 }
 
 .content > :first-child,

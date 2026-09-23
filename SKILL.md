@@ -56,7 +56,7 @@ node md-to-pdf/dist/cli.js doc.md --stage customer --review-source-sha256 <sha25
 node md-to-pdf/dist/cli.js doc.md --stage customer --ai-review doc-ai-review
 ```
 
-Metadata flags (`--title`, `--customer`, `--language`, `--chapter-break page`, …) override front
+Metadata flags (`--title`, `--customer`, `--language`, `--chapter-break none`, …) override front
 matter; prefer front matter so the source is self-describing. `--output` / `--html-output` set
 explicit paths. `--ai-review <dir>` writes the page PNGs plus a `REVIEW_PROMPT.md` for a second
 vision pass.
@@ -68,7 +68,8 @@ the layout report:
 
 - [ ] No literal `**`, `__`, or `~~` in the output (`residual-markdown-marker`).
 - [ ] Every glyph comes from the bundled fonts (`fallback-font`).
-- [ ] No body page ends below 50% fill; pages below 70% are explained (`page-fill`).
+- [ ] No page ends below 50% fill inside a chapter; pages below 70% are explained (`page-fill`).
+- [ ] No chapter ends with a near-empty spill-over page (`chapter-tail`).
 - [ ] No heading stranded at a page bottom (`orphan-heading`).
 - [ ] Nothing wider than the text column: tables, code, images (`*-overflow`).
 - [ ] `code-wrap-unsafe` warnings resolved in the source.
@@ -77,7 +78,7 @@ Checked by you on the images:
 
 - [ ] **Cover:** title on one line; customer, project, date, participants correct.
 - [ ] **TOC:** every H1–H3 listed with a page number; numbering matches the headings.
-- [ ] **Density:** no empty bands other than before an intentional break; block spacing looks even.
+- [ ] **Density:** each H1 starts a new page; within a chapter no empty bands; block spacing looks even.
 - [ ] **Hierarchy:** H1/H2/H3 are distinct; numbering is continuous (1, 1.1, 1.2, 2, …).
 - [ ] **Tables:** header distinct; short values, identifiers and numbers on one line; only prose
       and long URIs wrap; numeric columns right-aligned; no table split right after its header.

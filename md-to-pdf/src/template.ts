@@ -122,7 +122,7 @@ export function buildHtml(
   const tocHtml = toc.length > 0
     ? `<nav class="toc" aria-label="Table of contents"><h2 class="toc-title">Table of Contents</h2>${renderTocItems(toc)}</nav>`
     : '';
-  const bodyClasses = ['md2pdf', meta.chapterBreak === 'page' ? 'chapter-break-page' : 'chapter-break-none'];
+  const bodyClasses = ['md2pdf', meta.chapterBreak === 'none' ? 'chapter-break-none' : 'chapter-break-page'];
   const body = `${renderCover(meta)}
   ${tocHtml}
   <main class="content">${contentHtml}</main>`;

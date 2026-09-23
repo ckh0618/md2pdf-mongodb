@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CHAPTER_TAIL_WARNING_BELOW,
   FILL_ERROR_BELOW,
   FILL_WARNING_BELOW,
   MIN_FONT_PT,
@@ -204,6 +205,20 @@ export async function analyzePdf(
             + 'split it, move it, or shorten the content before it.',
         });
       }
+    }
+
+    // With chapter breaks, the last few lines of a chapter can spill onto an
+    // otherwise empty page. Not an error (the break is intentional) but
+    // usually fixable by trimming or tightening the chapter.
+    const endsChapter = n === doc.numPages || breakPages.has(n + 1);
+    if (n >= firstBodyPage && endsChapter && !breakPages.has(n) && n !== firstBodyPage && fill < CHAPTER_TAIL_WARNING_BELOW) {
+      issues.push({
+        severity: 'warning',
+        code: 'chapter-tail',
+        page: n,
+        message: `Page ${n} holds only the last ${(fill * 100).toFixed(0)}% of a chapter. `
+          + 'Shorten the chapter slightly (or split a long table/code block earlier) so it ends on the previous page.',
+      });
     }
   }
 
