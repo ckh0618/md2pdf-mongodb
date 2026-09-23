@@ -4,16 +4,18 @@ This document is an executable installation procedure for Agents. When an Agent 
 install md2pdf, it must read this file, choose the requested installation scope, run the
 canonical installer, verify the result, and report the installed targets.
 
-The repository is compatible with both Codex and OpenCode. Install the complete repository
-directory because the Agent needs SKILL.md, the renderer source, and the renderer documentation.
-Do not install only SKILL.md.
+The repository works with Codex, OpenCode, and Claude Code. Install the complete repository as a
+**git clone** — the Agent needs SKILL.md, the renderer, and CONVENTIONS.md, and a clone lets the
+renderer detect local modifications (`WARNING renderer-modified`). Install **one** clone and link
+every Agent to it so all Agents render with exactly the same code, stylesheet, and fonts.
 
 ## Agent execution rules
 
 1. Preserve the source Markdown and all files outside the exact md2pdf skill target.
 2. Install only into a target whose final directory name is md2pdf.
-3. Do not use rsync --delete, recursive deletion, or a broad directory as the target.
-4. If the source clone has uncommitted changes, do not run git pull; report the condition first.
+3. Never delete or overwrite an existing md2pdf directory that is not a clean clone of this
+   repository. Move it aside (for example to `md2pdf.bak-<date>`) and report it.
+4. If the clone has uncommitted changes, do not run git pull; report the condition first.
 5. Run the verification commands before reporting success.
 6. If a required command fails, stop and report the failed command and its output.
 
@@ -22,168 +24,105 @@ Do not install only SKILL.md.
 - Git
 - Node.js 20 or later
 - npm
-- rsync
 - A POSIX shell such as Bash, Zsh, or WSL
 - Chromium installation support for Playwright
-
-Check the runtime before installation:
 
 ~~~bash
 node --version
 npm --version
 git --version
-rsync --version
 ~~~
 
-## 1. Obtain the source repository
+## 1. Targets
 
-The source directory must contain both SKILL.md and md-to-pdf/package.json.
-
-For a new installation:
-
-~~~bash
-git clone https://github.com/ckh0618/md2pdf-mongodb.git
-cd md2pdf-mongodb
-~~~
-
-For an existing clean clone:
-
-~~~bash
-git status --short
-git pull --ff-only
-~~~
-
-Do not run git pull when git status --short reports changes. Use the existing source as-is or
-ask the user how to handle the changes.
-
-## 2. Select the installation scope
-
-Set INSTALL_SCOPE=global to install for the current user, or INSTALL_SCOPE=project to install
-inside the current project.
-
-| Agent | Global target | Project target |
+| Agent | Global skill path | Project skill path |
 | --- | --- | --- |
 | Codex | $HOME/.agents/skills/md2pdf | $PROJECT_ROOT/.agents/skills/md2pdf |
-| OpenCode | $HOME/.config/opencode/skills/md2pdf | $PROJECT_ROOT/.opencode/skills/md2pdf |
+| OpenCode | $HOME/.agents/skills/md2pdf (also reads $HOME/.config/opencode/skills) | $PROJECT_ROOT/.agents/skills/md2pdf |
+| Claude Code | $HOME/.claude/skills/md2pdf | $PROJECT_ROOT/.claude/skills/md2pdf |
 
-Codex also discovers project skills under .agents/skills. OpenCode also supports the
-Agent-compatible .agents/skills and Claude-compatible .claude/skills locations, but the
-OpenCode-specific targets above are preferred for explicit installation.
+The canonical clone is `$HOME/.agents/skills/md2pdf` (global) or
+`$PROJECT_ROOT/.agents/skills/md2pdf` (project). The Claude Code path is a symlink to it.
 
-## 3. Canonical installer
-
-Run this Bash block from the source repository root. It installs both Codex and OpenCode skills by
-default. Set INSTALL_CODEX=0 or INSTALL_OPENCODE=0 to install only one.
+## 2. Canonical installer
 
 ~~~bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="\${SOURCE_DIR:-$(pwd)}"
-INSTALL_SCOPE="\${INSTALL_SCOPE:-global}"
-INSTALL_CODEX="\${INSTALL_CODEX:-1}"
-INSTALL_OPENCODE="\${INSTALL_OPENCODE:-1}"
-
-if [ ! -f "$SOURCE_DIR/SKILL.md" ] || [ ! -f "$SOURCE_DIR/md-to-pdf/package.json" ]; then
-  echo "ERROR: SOURCE_DIR must be the md2pdf repository root: $SOURCE_DIR" >&2
-  exit 1
-fi
-
-command -v rsync >/dev/null 2>&1 || {
-  echo "ERROR: rsync is required" >&2
-  exit 1
-}
+REPO_URL="${REPO_URL:-https://github.com/ckh0618/md2pdf-mongodb.git}"
+INSTALL_SCOPE="${INSTALL_SCOPE:-global}"
+LINK_CLAUDE="${LINK_CLAUDE:-1}"
 
 case "$INSTALL_SCOPE" in
-  global)
-    CODEX_TARGET="\${CODEX_TARGET:-$HOME/.agents/skills/md2pdf}"
-    OPENCODE_TARGET="\${OPENCODE_TARGET:-$HOME/.config/opencode/skills/md2pdf}"
-    ;;
-  project)
-    PROJECT_ROOT="\${PROJECT_ROOT:-$(git -C "$SOURCE_DIR" rev-parse --show-toplevel)}"
-    CODEX_TARGET="\${CODEX_TARGET:-$PROJECT_ROOT/.agents/skills/md2pdf}"
-    OPENCODE_TARGET="\${OPENCODE_TARGET:-$PROJECT_ROOT/.opencode/skills/md2pdf}"
-    ;;
-  *)
-    echo "ERROR: INSTALL_SCOPE must be global or project" >&2
-    exit 1
-    ;;
+  global)  BASE="$HOME" ;;
+  project) BASE="${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}" ;;
+  *) echo "ERROR: INSTALL_SCOPE must be global or project" >&2; exit 1 ;;
 esac
+TARGET="$BASE/.agents/skills/md2pdf"
 
-install_one() {
-  local target="$1"
-  local label="$2"
-
-  case "$target" in
-    */md2pdf) ;;
-    *)
-      echo "ERROR: refusing target that does not end in /md2pdf: $target" >&2
-      exit 1
-      ;;
-  esac
-
-  mkdir -p "$target"
-  rsync -a \
-    --exclude '.git' \
-    --exclude '.agents' \
-    --exclude '.claude' \
-    --exclude '.opencode' \
-    --exclude '.playwright-mcp' \
-    --exclude 'md-to-pdf/node_modules' \
-    --exclude 'md-to-pdf/dist' \
-    "$SOURCE_DIR/" "$target/"
-
-  test -f "$target/SKILL.md"
-  test -f "$target/md-to-pdf/package.json"
-  test -f "$target/md-to-pdf/src/cli.ts"
-
-  (
-    cd "$target/md-to-pdf"
-    npm ci
-    npm run build
-    npx playwright install chromium
-    node dist/cli.js --help >/dev/null
-  )
-
-  echo "Installed $label skill at $target"
-}
-
-if [ "$INSTALL_CODEX" = "1" ]; then
-  install_one "$CODEX_TARGET" "Codex"
+if [ -d "$TARGET/.git" ]; then
+  if [ -n "$(git -C "$TARGET" status --porcelain)" ]; then
+    echo "ERROR: $TARGET has local changes; resolve them before updating" >&2
+    exit 1
+  fi
+  git -C "$TARGET" pull --ff-only
+elif [ -e "$TARGET" ]; then
+  BACKUP="$TARGET.bak-$(date +%Y%m%d%H%M%S)"
+  mv "$TARGET" "$BACKUP"
+  echo "Moved non-git copy aside: $BACKUP"
+  git clone "$REPO_URL" "$TARGET"
+else
+  mkdir -p "$(dirname "$TARGET")"
+  git clone "$REPO_URL" "$TARGET"
 fi
 
-if [ "$INSTALL_OPENCODE" = "1" ]; then
-  install_one "$OPENCODE_TARGET" "OpenCode"
+(
+  cd "$TARGET/md-to-pdf"
+  npm ci
+  npm run build
+  npx playwright install chromium
+  node dist/cli.js --help >/dev/null
+)
+
+if [ "$LINK_CLAUDE" = "1" ]; then
+  CLAUDE_LINK="$BASE/.claude/skills/md2pdf"
+  mkdir -p "$(dirname "$CLAUDE_LINK")"
+  if [ -L "$CLAUDE_LINK" ] || [ ! -e "$CLAUDE_LINK" ]; then
+    ln -sfn "$TARGET" "$CLAUDE_LINK"
+  else
+    echo "WARNING: $CLAUDE_LINK exists and is not a symlink; left untouched" >&2
+  fi
 fi
+
+echo "Installed md2pdf at $TARGET ($(git -C "$TARGET" rev-parse --short HEAD))"
 ~~~
 
-The installer is repeatable. Running it again updates the same skill files, reinstalls locked npm
-dependencies, rebuilds the renderer, and leaves unrelated skills untouched.
+The installer is repeatable: it fast-forwards a clean clone, reinstalls locked dependencies
+(including the bundled fonts), and rebuilds the renderer.
 
-## 4. Verify the installation
-
-For every target printed by the installer, verify:
+## 3. Verify the installation
 
 ~~~bash
-test -f <skill-target>/SKILL.md
-test -f <skill-target>/md-to-pdf/package.json
-test -f <skill-target>/md-to-pdf/dist/cli.js
-node <skill-target>/md-to-pdf/dist/cli.js --help
+test -f "$TARGET/SKILL.md"
+test -f "$TARGET/md-to-pdf/dist/cli.js"
+git -C "$TARGET" status --porcelain          # must print nothing
+node "$TARGET/md-to-pdf/dist/cli.js" --help
 ~~~
 
-The final command must print the md-to-pdf usage text and exit successfully.
-
-Expected skill layout:
+## 4. Expected layout
 
 ~~~text
 <skill-target>/
 ├── SKILL.md
 ├── INSTALL.md
-├── md-to-pdf/
-│   ├── package.json
-│   ├── src/
-│   └── dist/cli.js
-└── agents/openai.yaml
+├── agents/openai.yaml
+└── md-to-pdf/
+    ├── CONVENTIONS.md
+    ├── package.json
+    ├── assets/styles.css
+    ├── src/
+    └── dist/cli.js
 ~~~
 
 ## 5. Activate the skill
@@ -194,6 +133,10 @@ Restart Codex or refresh its skill list. For a project installation, launch Code
 project directory or one of its subdirectories. Confirm that the available skill is named
 md2pdf.
 
+### Claude Code
+
+Restart Claude Code. The skill is discovered through the `~/.claude/skills/md2pdf` symlink.
+
 ### OpenCode
 
 Restart OpenCode or reload the session. OpenCode should list md2pdf in its native skill tool.
@@ -203,16 +146,15 @@ The Agent can load it with:
 skill({ name: "md2pdf" })
 ~~~
 
-If OpenCode does not list the skill, confirm that SKILL.md is located at exactly
-<project>/.opencode/skills/md2pdf/SKILL.md or
-$HOME/.config/opencode/skills/md2pdf/SKILL.md.
+If OpenCode does not list the skill, confirm that SKILL.md is located at
+$HOME/.agents/skills/md2pdf/SKILL.md (or the project equivalent).
 
 ## 6. Use the installed renderer
 
 After activation, run the renderer from the installed skill directory:
 
 ~~~bash
-node <skill-target>/md-to-pdf/dist/cli.js /absolute/path/document.md --stage customer
+node <skill-target>/md-to-pdf/dist/cli.js /absolute/path/document.md --stage customer --pages /absolute/path/document-pages
 ~~~
 
 The default outputs are:
@@ -220,6 +162,7 @@ The default outputs are:
 ~~~text
 document.customer.html
 document.customer.pdf
+document.customer.layout.json
 ~~~
 
 For a review release:
@@ -235,13 +178,9 @@ Markdown is always the source of truth. Never edit generated HTML or PDF files d
 
 ## Updating an existing installation
 
-1. Check the source clone with git status --short.
-2. If it is clean, run git pull --ff-only.
-3. Run the canonical installer again with the same INSTALL_SCOPE and target variables.
-4. Repeat the verification and activation steps.
-
-Do not remove old target files automatically. node_modules and dist are generated inside the
-skill target and should not be committed to the source repository.
+Run the canonical installer again with the same INSTALL_SCOPE. It refuses to update a clone with
+local changes — layout must be fixed in Markdown, never by editing the installed renderer.
+node_modules and dist are generated inside the clone and are git-ignored.
 
 ## References
 

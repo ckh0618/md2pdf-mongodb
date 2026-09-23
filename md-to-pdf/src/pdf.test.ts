@@ -6,7 +6,7 @@ test('renders a Confidential badge on the left side of the page header', () => {
   const header = buildHeaderTemplate('customer');
 
   assert.match(header, />CONFIDENTIAL<\/span>/);
-  assert.match(header, /padding:0 20mm/);
+  assert.match(header, /padding:0 15mm/);
   assert.match(header, /background:#E3FCF7/);
   assert.match(header, /color:#00684A/);
   assert.doesNotMatch(header, /#DB3030/);

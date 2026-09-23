@@ -1,17 +1,21 @@
 # md2pdf
 
-`md2pdf` is a Codex and OpenCode Agent skill and command-line renderer that converts one Markdown source
-document into a self-contained HTML file and a PDF generated from that same rendered document.
+`md2pdf` is an Agent skill (Codex, OpenCode, Claude Code) and command-line renderer that converts one
+Markdown source document into a customer-ready PDF and a self-contained HTML file laid out from the
+same DOM. The same Markdown produces the same pages on every machine and with every agent.
 
 ## Features
 
-- Self-contained HTML and PDF output
-- GitHub-Flavored Markdown support
-- Syntax-highlighted code blocks
-- Local image embedding
-- Table of contents and document metadata from YAML front matter
+- Dense, consistent A4 layout: chapters flow continuously, short tables/code stay together, long ones
+  continue on the next page
+- Bundled fonts (Pretendard, Noto Sans SC/TC, JetBrains Mono) — no system-font differences
+- CJK-aware emphasis: `**중요(필수)**입니다` and `**注意（重要）**的` render bold
+- Tables fitted without shrinking text: short values stay on one line, only prose and long URIs wrap
+- Over-long code lines receive real, language-aware line breaks (`\` for shell) — fonts never shrink
+- Table of contents with PDF page numbers; external links collected as numbered references
+- Automated layout check (page fill, orphan headings, overflow, literal `**`, fallback fonts) with a
+  JSON report and page images rasterized from the PDF
 - Customer and review output stages
-- Playwright-based PDF generation
 
 ## Quick start
 
@@ -23,10 +27,10 @@ For Codex, send this one-line instruction to the Agent:
 $skill-installer Install the md2pdf skill from https://github.com/ckh0618/md2pdf-mongodb
 ~~~
 
-For OpenCode, run this one-line shell command:
+For OpenCode and Claude Code (one shared clone, see [INSTALL.md](INSTALL.md)):
 
 ~~~bash
-OPENCODE_SKILL="$HOME/.config/opencode/skills/md2pdf"; if [ -d "$OPENCODE_SKILL/.git" ]; then git -C "$OPENCODE_SKILL" pull --ff-only; else git clone https://github.com/ckh0618/md2pdf-mongodb.git "$OPENCODE_SKILL"; fi; cd "$OPENCODE_SKILL/md-to-pdf" && npm ci && npm run build && npx playwright install chromium
+T="$HOME/.agents/skills/md2pdf"; if [ -d "$T/.git" ]; then git -C "$T" pull --ff-only; else git clone https://github.com/ckh0618/md2pdf-mongodb.git "$T"; fi && (cd "$T/md-to-pdf" && npm ci && npm run build && npx playwright install chromium) && mkdir -p "$HOME/.claude/skills" && ln -sfn "$T" "$HOME/.claude/skills/md2pdf"
 ~~~
 
 ### Requirements
@@ -60,7 +64,7 @@ For complete Agent installation and update instructions, see
 From the repository root:
 
 ```bash
-node md-to-pdf/dist/cli.js ./document.md --stage customer
+node md-to-pdf/dist/cli.js ./document.md --stage customer --pages ./document-pages
 ```
 
 This produces:
@@ -68,7 +72,12 @@ This produces:
 ```text
 document.customer.html
 document.customer.pdf
+document.customer.layout.json
+document-pages/page-01.png ...
 ```
+
+The command exits with code 2 and prints `LAYOUT CHECK FAILED` when the layout rules in
+[`md-to-pdf/CONVENTIONS.md`](md-to-pdf/CONVENTIONS.md) are violated; fix the Markdown and render again.
 
 Use explicit output paths when needed:
 
@@ -91,7 +100,7 @@ printed by the review conversion:
 node md-to-pdf/dist/cli.js ./document.md --stage customer --review-source-sha256 <reviewed-source-sha256>
 ```
 
-The renderer also supports AI-assisted visual review artifacts:
+The renderer can also write the PDF pages plus a review prompt for a vision model:
 
 ```bash
 node md-to-pdf/dist/cli.js ./document.md --stage customer --ai-review ./ai-review
@@ -130,19 +139,21 @@ brand: Example
 customer: Example Customer
 project: Example Project
 author: Example Author
+chapter_break: none   # or page
 participants:
-  - Example Participant
+  - name: Example Participant
+    org: Example Customer
 ---
 ```
 
 CLI flags override front matter values. See
 [`md-to-pdf/CONVENTIONS.md`](md-to-pdf/CONVENTIONS.md) for the complete format.
 
-## Codex and OpenCode Agent skills
+## Agent skills
 
-The installation guide supports both Codex and OpenCode. Codex uses the .agents/skills location,
-while OpenCode uses .opencode/skills for project installations and
-$HOME/.config/opencode/skills for global installations.
+Install one git clone and point every agent at it (Codex and OpenCode read `~/.agents/skills`,
+Claude Code reads `~/.claude/skills` — use a symlink). A single copy guarantees identical output
+across agents, and the renderer warns when that copy has local modifications.
 
 See [INSTALL.md](INSTALL.md) for the executable installation contract and verification procedure.
 
@@ -171,10 +182,12 @@ RUN_PDF_INTEGRATION=1 npm test
 ## Repository layout
 
 ```text
-SKILL.md                    Codex Agent skill instructions
+SKILL.md                    Agent skill: workflow and final Layout QA checklist
 INSTALL.md                  Agent and renderer installation guide
 agents/openai.yaml          Agent interface metadata
+md-to-pdf/CONVENTIONS.md    The single Markdown authoring rulebook
 md-to-pdf/                  Renderer source, tests, and package metadata
+samples/                    Multilingual sample sources and rendered output
 images/                     Local diagram assets
 ```
 

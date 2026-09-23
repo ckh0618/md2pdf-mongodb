@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildFontFaceCss } from './fonts.js';
 import type { DocumentMeta, Participant, TocItem } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,7 +21,7 @@ function coverLogoDataUri(): string {
   }
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -37,10 +38,8 @@ function participantLine(p: Participant): string {
 }
 
 function renderParticipants(meta: DocumentMeta): string {
-  // Preserve the exact order declared in front matter's `participants` list
-  // (e.g. customer attendees first, MongoDB attendees after, or whatever
-  // order the author chose). `author` is only appended when absent from
-  // that list, and never forced to the front.
+  // Preserve the exact order declared in front matter's `participants` list.
+  // `author` is only appended when absent from that list, never forced first.
   let all: Participant[];
   if (meta.participants && meta.participants.length > 0) {
     all = [...meta.participants];
@@ -58,13 +57,11 @@ function renderParticipants(meta: DocumentMeta): string {
 }
 
 // Splits a leading manual chapter/section number (e.g. "1", "2.1", "5.3.1")
-// from the rest of a heading's text so the number can be styled as a
-// standalone badge in the TOC. Falls back to no badge when the heading
-// doesn't start with a numeric token (e.g. "Q&A", "부록").
+// from the rest of a heading's text so the number can be styled as a badge.
 function splitTocNumber(text: string): { num: string | null; label: string } {
-  const match = /^(\d+(?:\.\d+)*)\s+(.+)$/.exec(text);
+  const match = /^(\d+(?:\.\d+)*)\.?\s+(.+)$/.exec(text);
   if (!match) return { num: null, label: text };
-  return { num: match[1], label: match[2] };
+  return { num: match[1]!, label: match[2]! };
 }
 
 function renderTocItems(items: TocItem[]): string {
@@ -73,7 +70,9 @@ function renderTocItems(items: TocItem[]): string {
     const children = renderTocItems(item.children);
     const { num, label } = splitTocNumber(item.text);
     const numSpan = num ? `<span class="toc-num">${escapeHtml(num)}</span>` : '';
-    return `<li><span class="toc-entry"><a href="#${escapeHtml(item.id)}">${numSpan}<span class="toc-label">${escapeHtml(label)}</span></a></span>${children}</li>`;
+    const id = escapeHtml(item.id);
+    return `<li><a class="toc-entry" href="#${id}">${numSpan}<span class="toc-label">${escapeHtml(label)}</span>`
+      + `<span class="toc-leader" aria-hidden="true"></span><span class="toc-page" data-toc-target="${id}"></span></a>${children}</li>`;
   }).join('');
   return `<ul>${entries}</ul>`;
 }
@@ -108,6 +107,11 @@ function renderCover(meta: DocumentMeta): string {
 </section>`;
 }
 
+/** Text drawn by the PDF header/footer templates (needs glyph coverage too). */
+export function chromeText(meta: DocumentMeta): string {
+  return `CONFIDENTIAL FOR REVIEW Prepared for: ${meta.customer} ${meta.title} 0123456789 / · © MongoDB, Inc.`;
+}
+
 export function buildHtml(
   contentHtml: string,
   toc: TocItem[],
@@ -118,19 +122,24 @@ export function buildHtml(
   const tocHtml = toc.length > 0
     ? `<nav class="toc" aria-label="Table of contents"><h2 class="toc-title">Table of Contents</h2>${renderTocItems(toc)}</nav>`
     : '';
+  const bodyClasses = ['md2pdf', meta.chapterBreak === 'page' ? 'chapter-break-page' : 'chapter-break-none'];
+  const body = `${renderCover(meta)}
+  ${tocHtml}
+  <main class="content">${contentHtml}</main>`;
+  const fonts = buildFontFaceCss(body, chromeText(meta), meta.language);
 
   return `<!doctype html>
 <html lang="${escapeHtml(meta.language)}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="md2pdf">
   <title>${escapeHtml(meta.title)}</title>
+  <style>${fonts.css}</style>
   <style>${css}</style>
 </head>
-<body>
-  ${renderCover(meta)}
-  ${tocHtml}
-  <main class="content">${contentHtml}</main>
+<body class="${bodyClasses.join(' ')}">
+  ${body}
 </body>
 </html>`;
 }

@@ -1,438 +1,256 @@
-# Markdown → HTML/PDF 매핑 규약 (CONVENTIONS)
+# md2pdf Markdown Conventions (canonical)
 
-이 문서는 `md-to-pdf` 렌더러가 Markdown 입력을 HTML/PDF로 변환할 때 인식하는
-모든 매핑 규약을 정의한다. 작성자는 이 규약에 맞춰 Markdown을 작성하면 된다.
+This is the single source of truth for how Markdown must be written so that `md-to-pdf` produces a
+consistent, dense, customer-ready document. It applies to every agent (Codex, OpenCode, Claude
+Code, …) and to humans. The renderer enforces most rules itself and fails the build
+(`LAYOUT CHECK FAILED`, exit code 2) when a rule is broken, so the same input always produces the
+same output on every machine.
 
----
+Principles:
 
-## 0. 표준 vs 비표준 문법 요약
-
-아래 규약 중 일부는 CommonMark/GFM(GitHub Flavored Markdown) **표준 문법**이고, 일부는
-**이 렌더러(`md-to-pdf`)만 해석하는 비표준/커스텀 문법**이다. 비표준 문법은 GitHub,
-VS Code 미리보기, Notion 등 다른 Markdown 뷰어에서 열면 의도한 대로 표시되지 않고
-그냥 평문(plain text)이나 일반 blockquote/코드블록으로 보인다. 다른 곳에도 공유할
-Markdown이라면 이 차이를 알고 있어야 한다.
-
-| # | 규약 | 표준 여부 | 비고 |
-| - | --- | --- | --- |
-| 1 | YAML Front Matter | 비표준 | CommonMark 자체엔 없음. Jekyll/Hugo류 정적 사이트 생성기 관행을 차용했으나, 여기서 쓰는 필드(`customer`, `participants` 등)는 이 렌더러 전용 |
-| 2 | 헤딩(`#`, `##`)과 수동 번호 | 표준 | 헤딩 문법 자체는 CommonMark. 번호를 텍스트에 직접 쓰는 것도 그냥 텍스트라 표준 |
-| 3 | `[Priority: N]` 배지 | **비표준** | 이 렌더러가 헤딩 텍스트 끝의 이 패턴을 감지해 배지로 치환. 다른 뷰어에서는 `[Priority: 1]`이라는 글자 그대로 보임 |
-| 4 | Priority Legend 자동 삽입 | **비표준** | `## Recommendations` 같은 특정 헤딩 텍스트를 매직 스트링으로 감지. 다른 뷰어에서는 아무 일도 일어나지 않음(Legend 없음) |
-| 5 | `> [!NOTE]` 등 Admonition | 준표준 | GitHub가 2023년부터 README 등에서 지원하는 "Alerts" 문법이라 GitHub.com에서는 유사하게 렌더링되지만 CommonMark/원래 GFM 스펙엔 없음. 다른 뷰어(VS Code 기본 미리보기 등)에서는 그냥 blockquote 안에 `[!NOTE]`라는 글자가 보임 |
-| 6 | `**Question:**` / `**Answer:**` Q&A | **비표준** | 볼드 텍스트 자체는 표준이지만, 이 특정 키워드로 시작하는 문단을 Q/A 박스로 바꾸는 것은 이 렌더러만의 동작. 다른 곳에서는 그냥 볼드 텍스트로 보임 |
-| 7 | 코드블록 ` ```lang title="..." ` 속성 | **비표준** | 언어 식별자는 CommonMark 표준이지만 `title=`/`filename=`/`file=` 속성은 스펙 밖. 다른 뷰어에서는 이 속성이 무시되거나 언어 인식이 깨질 수 있음 |
-| 8 | GFM 테이블 | 표준 | 순수 GFM |
-| 9 | GFM Task List (`- [ ]`) | 표준 | 순수 GFM |
-| 10 | 이미지 `![]()`  | 표준 문법 / **비표준 제약** | 문법 자체는 표준이나, "원격 URL 금지, 로컬 파일만 허용"이라는 제약은 이 렌더러 전용. 순수 Markdown에서는 원격 이미지가 오히려 일반적 |
-| 11 | `<div class="page-break"></div>` | 표준 문법 / **비표준 의미** | Markdown 안에 raw HTML을 쓰는 것 자체는 CommonMark 표준이지만, `page-break` 클래스가 실제 페이지 나누기로 작동하는 것은 이 스타일시트(`styles.css`)에 종속 |
-| 12 | TOC 자동 생성 | 비표준 동작 | 특별한 문법이 필요하지는 않지만(그냥 h1–h3를 쓰면 됨), TOC를 자동으로 만들어주는 것 자체가 이 렌더러의 기능 |
-| 13 | 하이퍼링크 `[text](url)` | 표준 | 순수 CommonMark |
-
-**요약**: 헤딩, 표, 체크리스트, 링크, 이미지 문법, raw HTML 자체는 표준이다. 반면
-**Priority 배지, Priority Legend, Q&A 패턴, 코드블록 title 속성, "로컬 이미지만 허용"
-제약**은 이 렌더러 밖에서는 의미가 없는 비표준 확장이므로, 문서를 이 렌더러 **이외의
-용도**(예: GitHub 저장소 README, Notion 붙여넣기)로도 재사용할 계획이면 이 표를 참고해
-어떤 부분이 깨질 수 있는지 미리 확인해야 한다.
+- **Markdown is the only thing you edit.** Never edit generated HTML/PDF, and never edit the
+  renderer (`md-to-pdf/assets`, `md-to-pdf/src`) during a render task. The renderer prints
+  `WARNING renderer-modified` when its files differ from git; that output is not reproducible.
+- **One layout profile.** There is no density preset or per-document CSS. Layout differences are
+  expressed only through the front matter options listed below.
+- **Fonts never shrink.** Tables wrap cells, code gets real line breaks; text size is fixed.
 
 ---
 
-## 1. Front Matter (YAML 메타데이터) — 비표준
+## 1. Converting a raw draft
 
-문서 최상단에 YAML front matter를 작성한다. 모든 표지 정보와 메타데이터는
-여기서 제공한다.
+When the input is not already written for this renderer (meeting notes, exports, drafts), write a
+new file `<basename>.convention.md` next to the source (never overwrite the original) and apply
+sections 2–12. Preserve meaning; change only structure and syntax. Report what changed per rule.
+
+Do not invent content, a manual TOC, a manual Priority Legend, or `<figure>` wrappers.
+
+---
+
+## 2. Front matter
 
 ```yaml
 ---
-title: 고객사 A - 게임 인프라 최적화
+title: Customer A - Game Platform Optimization   # required, one line on the cover
 subtitle: MongoDB Consulting Report
-customer: 고객사 A
-project: 게임 플랫폼 DB 최적화
+customer: Customer A                             # required
+project: Game Platform DB Optimization
 brand: MongoDB
 version: "1.0"
-date: "2026-07-14 ~ 2026-07-29"
-language: ko
+date: "2026-07-14"                               # required (quote it)
+language: ko                                     # required BCP 47: ko, en, ja, zh-Hans, zh-Hant
 audience: customer
 copyright_year: "2026"
+chapter_break: none                              # none (default) | page
+references: true                                 # default true; false keeps URLs inline only
 author:
-  name: 컨설턴트 A
+  name: Consultant A
   title: Consulting Engineer
   org: MongoDB
   email: consultant@example.com
-participants:
-  - name: 고객 담당자 A
-    title: DB팀 책임
-    org: 고객사 A
+participants:                                    # shown in exactly this order
+  - name: Customer Contact A
+    title: DB Team Lead
+    org: Customer A
     email: customer-a@example.com
-  - name: 컨설턴트 A
-    title: Consulting Engineer
-    org: MongoDB
-    email: consultant@example.com
 ---
 ```
 
-### 필드 상세
+| Field | Required | Used for |
+| --- | --- | --- |
+| `title` | yes | Cover, `<title>`, footer. Plain text only — no `**`, backticks. |
+| `customer` | yes | Cover "Prepared for", footer. Ask the user if unknown. |
+| `date` | yes | Cover. Defaults to today. |
+| `language` | yes | `<html lang>`, fonts, word breaking, references title. |
+| `subtitle`, `project`, `version`, `brand` | recommended | Cover. `app` is a synonym of `project`. |
+| `author`, `participants` | recommended | Cover participants block. `author` is appended if absent from the list. |
+| `chapter_break` | no | `page` starts every H1 on a new page. Default `none` (dense flow). |
+| `references` | no | `false` disables numbered link references. |
+| `audience` | stage | `customer` for customer output; review appendices use `internal-review`. |
 
-| 필드              | 필수 | 매핑 위치                    | 비고                                  |
-| ----------------- | ---- | ---------------------------- | ------------------------------------- |
-| `title`           | ✓    | 표지 제목, `<title>`, 푸터   |                                       |
-| `subtitle`        | 권장 | 표지 부제                    | Consulting Report면 "MongoDB Consulting Report" |
-| `customer`        | ✓    | 표지 "Prepared for", 푸터    |                                       |
-| `project`         | 권장 | 표지 "Project" 블록          | `app`도 동의어로 인식                 |
-| `brand`           | 자동 | 표지 브랜드명                | 생략시 "Markdown Document"            |
-| `version`         | 권장 | 표지 메타 "Version:"         |                                       |
-| `date`            | ✓    | 표지 메타 "Date:"            | 생략시 오늘 날짜                      |
-| `language`        | ✓    | `<html lang>`                | BCP 47 태그 (`ko`, `en`, `ja`)        |
-| `author`          | 권장 | 표지 "Author:" 라인          | 객체: `{name, title, org, email}`     |
-| `participants`    | 권장 | 표지 Participants 블록      | 배열: `[{name, title, org, email}]`. 표시 순서는 이 배열에 **작성한 순서 그대로** 반영된다 (예: 고객 참석자를 먼저, MongoDB 참석자를 뒤에 적으면 그 순서대로 표시). `author`와 이름이 같은 항목이 배열에 이미 있으면 중복 표시되지 않는다. `author`가 배열에 없으면 맨 뒤에 자동으로 추가된다. |
-| `audience`        | 단계별 | 검증 로직                  | `customer` 단계: `customer`, `review` 단계: `internal-review` |
-| `copyright_year`  | 자동 | 푸터 `© YYYY MongoDB, Inc.`  | 생략시 현재 연도                      |
-
-### CLI 플래그로 덮어쓰기
-
-모든 front matter 필드는 CLI 플래그로 덮어쓸 수 있다:
-
-```bash
-node dist/cli.js input.md --stage customer \
-  --title "Override Title" --customer "Other Corp" --project "New App"
-```
+Research missing metadata (project documents, kickoff notes, Glean) instead of guessing. CLI flags
+(`--title`, `--customer`, `--chapter-break`, …) override front matter.
 
 ---
 
-## 2. 헤딩 번호 — 표준
+## 3. Headings
 
-헤딩 번호는 **작성자가 수동으로 입력**한다. 자동 번호 부여가 아니다.
-
-```markdown
-# 1 Executive Summary
-## 2.1 Application
-## 4.1 인덱스 생성 [Priority: 1]
-```
-
-TOC는 h1–h3를 자동 수집하며, 헤딩 ID는 텍스트에서 슬러그화된다.
-
----
-
-## 3. Priority 배지 (Recommendation 헤딩) — 비표준
-
-헤딩 끝에 `[Priority: N]` (N = 1, 2, 3)을 붙이면 색상 배지로 변환된다.
-
-```markdown
-## 4.1 인덱스 생성 [Priority: 1]    → 빨간 배지 (즉시 구현)
-## 4.2 백업 테스트 [Priority: 2]    → 주황 배지 (빠른 구현)
-## 4.3 TTL 인덱스 [Priority: 3]     → 초록 배지 (고려)
-```
-
-- TOC에는 배지 텍스트가 제외된 깨끗한 제목만 표시된다.
-- `[Priority: N]`은 헤딩 텍스트의 일부가 아니므로 슬러그에 영향을 주지 않는다.
+- The document title lives in front matter only. Remove a duplicate top-level title from the body.
+- Chapters are `#` (H1), sections `##`, subsections `###`. Number them manually:
+  `# 1 Background`, `## 1.1 Application`, `### 1.1.1 Detail`.
+- Use at most H1–H3 (the TOC collects H1–H3). Turn deeper levels into bold lead-ins, lists, or tables.
+- Do not write a manual TOC; the renderer builds one with PDF page numbers.
+- A heading must be followed by content. Never end a section with a heading.
+- Chapters flow continuously by default. Use `chapter_break: page` only when the customer
+  explicitly wants one chapter per page.
 
 ---
 
-## 4. Priority Legend (자동 삽입) — 비표준
+## 4. Emphasis (bold / italic)
 
-`## Recommendations` 또는 `## N Recommendations` 패턴의 헤딩을 감지하면,
-그 **앞에** Priority 1/2/3 정의 테이블과 "pre-production 테스트 권고" 경고문이
-자동으로 삽입된다. 작성자가 직접 작성할 필요가 없다.
+The parser is CJK-aware, so `**중요(필수)**입니다`, `**100%**를`, `**注意（重要）**的` all render
+bold. Still follow these rules; the renderer reports `residual-markdown-marker` as an **error** if a
+literal `**`, `__`, or `~~` reaches the output:
 
-```markdown
-# 4 Recommendations      ← 이 헤딩 앞에 Legend가 자동 삽입됨
-
-## 4.1 첫 번째 권장 사항 [Priority: 1]
-...
-```
+- Use `**bold**` and `*italic*`. Do not use `__bold__` or `_italic_` (they do not work inside
+  words, e.g. `__밑줄__도`).
+- No spaces just inside the markers: `**bold**`, not `** bold **`.
+- Latin text: a closing `**` that follows punctuation needs a space or punctuation after it:
+  `x **(bold)** y`, not `x **(bold)**y`.
+- Markdown is not parsed inside block-level raw HTML (`<div>…</div>`, `<table>…</table>`). Use
+  `<strong>` there, or avoid raw HTML.
+- Italic in Korean/Chinese/Japanese is rendered as an underline (CJK fonts have no italic).
+- Do not use bold for whole paragraphs; use an admonition instead.
 
 ---
 
-## 5. Admonition (강조 박스) — 준표준 (GitHub Alerts)
+## 5. Tables
 
-GitHub 스타일 blockquote 마커를 사용한다. 5종이 지원된다:
+Standard GFM pipe tables with a header row. The renderer fits every table without shrinking text:
+
+1. If the table fits with every cell on one line, nothing wraps.
+2. Otherwise prose columns (cells with spaces) wrap, longest first; identifiers, numbers and short
+   values stay on one line.
+3. Then long unbreakable strings (URIs, long identifiers) break, longest first.
+4. A table that still does not fit fails with `table-overflow`.
+
+Authoring rules:
+
+- Keep tables to about 6 columns. Split wide tables or move long explanations into prose below.
+- Keep cells short; one idea per cell. Avoid `<br>` in cells.
+- Right-align numeric columns: `| --- | ---: |`.
+- Put identifiers, parameters and values in `` `code` `` — they stay on one line when possible.
+- Tables with ≤ 12 body rows stay on one page; longer tables continue on the next page with the
+  header repeated (rows never split).
+
+---
+
+## 6. Code blocks
+
+- Always fence with a language: ` ```bash `, ` ```javascript `, ` ```json `, ` ```python `,
+  ` ```yaml `, ` ```sql `, or ` ```text `. Indented code blocks are not allowed.
+- Add a file/purpose tab when useful: ` ```javascript title="create-index.js" `
+  (`filename=` and `file=` also work).
+- The code font is fixed (9pt, no ligatures). Lines longer than the page (≈ 89 columns; ≈ 86
+  inside a list or admonition) receive **real newlines** chosen per language:
+  - bash/sh/zsh/Dockerfile: `␠\` at an argument boundary; a bare `\` mid-token for a single token
+    that is longer than the line (bash removes backslash-newline, so pasted commands still run);
+  - PowerShell: `␠` + backtick;
+  - Python: implicit continuation inside brackets, `␠\` outside;
+  - JavaScript/TypeScript/JSON/Java/Go/C#/CSS…: after `,` `(` `[` `{` or a binary operator, and
+    before `.method(` chains in JS/TS;
+  - SQL/text/YAML: at whitespace.
+- A forced break that may change meaning (inside a string literal, YAML scalar, single-quoted shell
+  string) is reported as `code-wrap-unsafe`. Fix it in the source: shorten the line, split the
+  string, or break the command yourself.
+- Prefer writing long shell commands with your own `\` continuations — you choose the break points.
+- Blocks of ≤ 20 lines stay on one page; longer blocks may continue on the next page.
+
+---
+
+## 7. Admonitions and Q&A
 
 ```markdown
 > [!NOTE]
-> 일반적인 참고 사항 (파란색)
+> Background information.
 
-> [!TIP]
-> 유용한 팁 (초록색)
-
-> [!WARNING]
-> 주의 필요 (노란색)
-
-> [!CAUTION]
-> 위험 — 즉시 조치 필요 (빨간색)
-
-> [!IMPORTANT]
-> 중요 — 반드시 읽을 것 (보라색)
+> [!TIP] / [!WARNING] / [!CAUTION] / [!IMPORTANT]
 ```
 
-각 종류별로 고유한 색상과 아이콘이 렌더링된다.
+- Use admonitions for notes, risks and must-read items; keep them short (they never split across pages).
+- Plain `>` quotes are only for genuine quotations.
+- Q&A pairs are paragraphs starting with `**Question:**` / `**Answer:**` (`:` or `：`).
 
 ---
 
-## 6. Q&A 페어 — 비표준
+## 8. Recommendations and Priority badges
 
-`**Question:**` 또는 `**Answer:**` (콜론은 `:` 또는 `：` 모두 가능)로 시작하는
-문단은 자동으로 Q/A 블록으로 변환된다.
-
-```markdown
-**Question:** 권장된 인덱스를 프로덕션에 바로 적용해도 되는가?
-
-**Answer:** 아니오. 스테이징에서 먼저 검증하라.
-```
-
-- Question: 파란색 좌측 보더 + "Q" 원형 라벨
-- Answer: 회색 좌측 보더 + "A" 원형 라벨
+- Append `[Priority: 1]`, `[Priority: 2]` or `[Priority: 3]` to a recommendation heading:
+  `## 4.1 Create a compound index [Priority: 1]`.
+- A heading named `Recommendations` / `N Recommendations` / `권장 사항` / `권고 사항` / `推荐` /
+  `建议` / `建議` (H1 or H2) gets the Priority Legend inserted directly **below** it. Never write a
+  legend by hand.
 
 ---
 
-## 7. 코드 블록 with 제목 — 비표준 (title 속성)
+## 9. Images and figures
 
-펜스드 코드 블록의 info string에 `title=`, `filename=`, 또는 `file=` 속성을
-넣으면 파일명 탭이 코드 블록 상단에 표시된다.
-
-````markdown
-```javascript title="create-index.js"
-db.user_inventory.createIndex({ user_id: 1, item_id: 1 });
-```
-````
-
-````markdown
-```bash filename="verify.sh"
-db.user_inventory.getIndexes()
-```
-````
-
-구문 강조는 Shiki (`github-light` 테마)로 처리된다. 지원 언어:
-`javascript`, `typescript`, `python`, `bash`, `shell`, `json`, `yaml`,
-`sql`, `html`, `css`, `markdown` 등 (알려지지 않은 언어는 `text`로 폴백).
-
-언어 별칭: `js` → `javascript`, `ts` → `typescript`, `py` → `python`,
-`sh`/`shell`/`console` → `bash`, `yml` → `yaml`, `txt`/`plaintext` → `text`,
-`md` → `markdown`.
+- `![alt text](./images/diagram.svg)` with a **local** path only; remote URLs are rejected. Download
+  remote images into `images/` next to the document. If that is impossible, draw a placeholder SVG
+  and tell the user it must be replaced.
+- Formats: png, jpg/jpeg, gif, svg, webp, avif, apng.
+- Caption: an italic line directly below the image, `*Figure 1: Read path*`. It is centered and
+  kept with the image.
+- Images are limited to the page width and 125 mm height. Text inside diagrams must stay ≥ 7pt after
+  scaling (`tiny-font` warning otherwise) — design SVGs at roughly the printed width (~170 mm).
 
 ---
 
-## 8. 표 (GFM 테이블) — 표준
+## 10. Links
 
-표준 GFM 파이프 테이블을 지원한다.
-
-```markdown
-| 지표    | 현재    | 목표    |
-| ------- | ------- | ------- |
-| p99     | 3200ms  | <500ms  |
-| CPU     | 92%     | <70%    |
-```
-
-- 헤더행: 회색 배경 (`--color-table-header`)
-- 짝수행: 스트라이프 (`--color-table-stripe`)
-- 페이지 break 시 헤더 자동 반복
-- 행 단위 페이지 break 방지
+- Write inline links `[MongoDB indexes](https://www.mongodb.com/docs/manual/indexes/)`.
+- External links get a superscript number `[1]` and are listed under a final **References**
+  section (localized: 참고 링크 / 参考链接 / 參考連結), so the body stays compact and printed copies
+  keep the address. Bare URLs (`<https://…>`) are shown as-is and not numbered.
+- Do not write the URL twice.
 
 ---
 
-## 9. 체크리스트 (GFM Task List) — 표준
+## 11. Lists, task lists, page breaks
 
-GFM task list 문법을 지원한다.
-
-```markdown
-- [ ] 인덱스 검증 (1주일 내)
-- [ ] 샤드 키 리파인 스크립트 테스트
-- [x] 완료된 항목
-```
-
-- 미체크: 빈 체크박스 (회색 보더)
-- 체크됨: 초록 배경 + 흰색 ✓
-- PDF에서도 색상이 보존된다
+- Use `-` for bullets, `1.` for ordered lists; keep nesting ≤ 3 levels.
+- Task lists: `- [ ]` / `- [x]`.
+- `<div class="page-break"></div>` only before a real appendix. Never put it next to a heading in
+  `chapter_break: page` mode (that produces an empty page).
 
 ---
 
-## 10. 이미지 임베드 — 문법은 표준 / 로컬 전용 제약은 비표준
+## 12. Characters and fonts
 
-로컬 이미지 경로는 자동으로 base64 data URL로 변환되어 self-contained PDF에
-포함된다. 원격 URL은 허용되지 않는다.
+All text is drawn with bundled fonts (Pretendard, Noto Sans SC/TC, JetBrains Mono — SIL OFL 1.1).
+Any glyph that falls back to a system font fails with `fallback-font`, because it would look different
+on another machine.
 
-```markdown
-![아키텍처 다이어그램](./images/architecture.png)
-```
-
-지원 포맷: `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`, `.apng`
-
-이미지는 자동으로 둥근 모서리, 얇은 보더, 그림자가 적용된다.
-`figcaption`은 Markdown에 명시적으로 `<figure>`를 쓰지 않는 한 자동 생성되지 않는다.
+- Do not use emoji (🚀 ✅ ❌ …) or dingbats (✔ ✗ ►).
+- Common symbols are fine: → ← ↑ ↓ ⇒ • ※ ① ✓ ★ ☆ ⚠ ▶ ◆ ■ □ ○ ● … – — · © ® ™ ± × ÷ ≤ ≥ ≠ ∞ ° ℃.
 
 ---
 
-## 11. 페이지 브레이크 — raw HTML은 표준 / 의미는 비표준
-
-명시적 페이지 나누기:
-
-```markdown
-<div class="page-break"></div>
-```
-
----
-
-## 12. 인덱스 (Table of Contents) — 비표준 동작 (자동 생성)
-
-TOC는 h1–h3 헤딩을 자동으로 수집하여 생성된다. 작성자가 별도로 작성할 필요가 없다.
-
-- 1단계 (h1): 본문 크기, 굵게
-- 2단계 (h2): 들여쓰기, 약간 작게
-- 3단계 (h3): 더 들여쓰기, 회색
-
-점 리더(dotted leader)가 항목과 페이지 번호 사이에 표시된다.
-(단, 페이지 번호는 HTML에서는 미표기, PDF에서만 Playwright가 삽입)
-
----
-
-## 13. 하이퍼링크 — 표준
-
-본문 내 링크는 인텍스트 하이퍼링크로 작성한다:
-
-```markdown
-[복합 인덱스](https://www.mongodb.com/docs/manual/core/index-compound/)
-```
-
-PDF 인쇄 시 외부 링크(`http://`, `https://`)는 링크 텍스트 뒤에 URL이
-자동으로 표시된다. 내부 앵커(`#section`)와 표지/TOC 링크는 제외된다.
-
----
-
-## 14. 2단계 릴리스 흐름 (Review / Customer)
-
-### Review 단계
+## 13. Review / customer release
 
 ```bash
-node dist/cli.js input.md --stage review --review-appendix review.md
+node md-to-pdf/dist/cli.js doc.md --stage review --review-appendix review.md
+node md-to-pdf/dist/cli.js doc.md --stage customer --review-source-sha256 <sha256-from-review>
 ```
 
-- `--review-appendix` 필수: 검토 부록 Markdown
-- 부록이 본문 뒤에 페이지 브레이크와 함께 추가됨
-- 헤더/표지에 "FOR REVIEW" 표시
-- 원본 소스 SHA-256 출력
-
-### Customer 단계 (검토 후)
-
-```bash
-node dist/cli.js input.md --stage customer \
-  --review-source-sha256 <review-stage에서-출력된-SHA-256>
-```
-
-- `--review-source-sha256` 전달 시, 현재 원본과 해시를 비교
-- 해시가 다르면 (검토 후 원본이 변경됨) 에러로 차단
-- 검토되지 않은 문서의 배포를 방지
-
-### Audience 검증
-
-| Stage     | Document front matter `audience` | Review appendix `audience` |
-| --------- | -------------------------------- | -------------------------- |
-| `review`  | (생략 가능)                      | `internal-review`          |
-| `customer`| `customer`                       | (사용 안 함)               |
+- Review output requires an appendix (`audience: internal-review`) and is marked FOR REVIEW.
+- Customer output after review requires the exact source SHA-256; a changed source is rejected.
 
 ---
 
-## 15. MongoDB 브랜드 요소
+## 14. What the renderer does automatically
 
-렌더러가 자동으로 적용하는 MongoDB 브랜드 요소:
-
-| 요소                | 위치              | 소스                          |
-| ------------------- | ----------------- | ----------------------------- |
-| MongoDB 로고 (표지) | 표지 상단         | `assets/mongodb-logo-white.svg` (다크 배경용) |
-| MongoDB 로고 (본문) | PDF 헤더 우측     | `assets/mongodb-logo-slate-blue.svg` (밝은 배경용) |
-| CONFIDENTIAL 배지   | PDF 헤더 좌측     | `pdf.ts` 인라인               |
-| © MongoDB, Inc.     | PDF 푸터 우측     | `copyright_year` 기반         |
-| Spring Green 액센트 | 표지, 헤딩, 배지  | `assets/styles.css` 커스텀 프로퍼티 |
-| Slate 배경          | 표지              | `#001E2B`                     |
-
-
-작성자가 브랜드 요소를 직접 Markdown에 넣을 필요는 없다.
-
----
-
-## 16. 컬러 팔레트 (참고용)
-
-| 이름              | Hex       | 용도                       |
-| ----------------- | --------- | -------------------------- |
-| Slate             | `#001E2B` | 본문 텍스트, 표지 배경     |
-| Spring Green      | `#00ED64` | 장식 액센트, 배지          |
-| Forest Green      | `#00684A` | AA-safe 본문용 (h1 밑줄)   |
-| Mist              | `#E3FCF7` | tip 배경                   |
-| White             | `#FFFFFF` | 페이지 배경                |
-| Clear Blue        | `#016BF8` | 링크, note                 |
-
----
-
-## 17. 전체 예제
-
-```markdown
----
-title: 고객사 - 프로젝트명
-subtitle: MongoDB Consulting Report
-customer: 고객사
-project: 프로젝트명
-version: "1.0"
-date: "2026-07-14"
-language: ko
-audience: customer
-author:
-  name: 컨설턴트 A
-  title: Consulting Engineer
-  org: MongoDB
-  email: consultant@example.com
-participants:
-  - name: 고객 담당자 A
-    title: DB팀 책임
-    org: 고객사
-    email: customer-a@example.com
----
-
-# 1 경영 요약
-
-핵심 메시지를 1페이지 이내로 작성한다.
-
-> [!IMPORTANT]
-> 경영진이 즉시 검토해야 할 핵심 항목을 강조한다.
-
-# 2 배경
-
-## 2.1 애플리케이션
-
-| 항목 | 값 |
+| Element | Behavior |
 | --- | --- |
-| DAU | 180만 |
+| Cover | Dark MongoDB cover; title auto-fits one line (28 → 16 pt) or fails. |
+| TOC | H1–H3 with PDF page numbers. |
+| Header / footer | CONFIDENTIAL badge, logo, customer, title, page x / y, © year MongoDB, Inc. |
+| Page | A4, margins 20 / 15 / 15 / 15 mm (top / side / bottom / side). |
+| Body | 10 pt, line height 1.5; Korean breaks between words, not syllables. |
+| Keep together | Headings stay with the next block; tables ≤ 12 rows, code ≤ 20 lines, admonitions, Q&A, images. |
+| HTML | Serialized from the same laid-out DOM as the PDF, self-contained (fonts and images inlined). |
+| Layout report | `<output>.layout.json` with per-page fill and every issue. |
 
-## 2.2 환경
+## 15. Layout check codes
 
-> [!NOTE]
-> 환경 정보를 기술한다.
-
-# 3 목표
-
-- 병목 식별
-- 인덱스 최적화
-
-# 4 권장 사항
-
-## 4.1 인덱스 생성 [Priority: 1]
-
-현재 상태를 설명한다.
-
-### 해결 방법
-
-\`\`\`javascript title="create-index.js"
-db.collection.createIndex({ user_id: 1 });
-\`\`\`
-
-> [!CAUTION]
-> 스테이징에서 먼저 검증하라.
-
-# 5 Q&A
-
-**Question:** 프로덕션에 바로 적용해도 되는가?
-
-**Answer:** 아니오. 스테이징에서 먼저 검증하라.
-
-# 6 다음 단계
-
-- [ ] 인덱스 검증
-- [ ] 백업 테스트 수행
-```
+| Code | Severity | Meaning / fix |
+| --- | --- | --- |
+| `residual-markdown-marker` | error | Literal `**`/`__`/`~~` in output. Fix per §4. |
+| `fallback-font` | error | Glyph not in bundled fonts. Remove emoji/dingbats (§12). |
+| `page-fill` | error < 50 %, warning < 70 % | Page ends early because the next block must stay together. Split/shorten the table or code, move the image, or reorder. |
+| `orphan-heading` | error | Heading at the bottom of a page. Usually caused by a keep-together block after it; shorten or split that block. |
+| `table-overflow` | error | Table too wide even fully wrapped. Reduce columns (§5). |
+| `code-overflow` / `content-overflow` | error | Something wider than the text column. |
+| `code-wrap-unsafe` | warning | Forced newline inside a literal (§6). |
+| `tiny-font` | warning | Text < 7 pt, usually inside an image (§9). |
+| `code-line-wrapped` | info | Lines received forced newlines; confirm the break points read well. |

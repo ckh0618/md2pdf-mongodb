@@ -2,3 +2,4 @@ md-to-pdf/node_modules/
 md-to-pdf/dist/
 .playwright-mcp/
 .DS_Store
+*.layout.json

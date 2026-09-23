@@ -1,5 +1,7 @@
 export type PdfStage = 'review' | 'customer';
 
+export type ChapterBreak = 'none' | 'page';
+
 export interface Participant {
   name: string;
   title?: string;
@@ -21,6 +23,8 @@ export interface DocumentMeta {
   copyrightYear?: string;
   classification: 'Confidential';
   stage: PdfStage;
+  /** Start every H1 chapter on a new page (default: none). */
+  chapterBreak?: ChapterBreak;
 }
 
 export interface TocItem {
@@ -30,7 +34,23 @@ export interface TocItem {
   children: TocItem[];
 }
 
+export type IssueSeverity = 'error' | 'warning' | 'info';
+
+export interface RenderIssue {
+  severity: IssueSeverity;
+  code: string;
+  message: string;
+  page?: number;
+}
+
+export interface ConvertOptions {
+  language?: string;
+  /** Turn external links into numbered references (default true). */
+  references?: boolean;
+}
+
 export interface MarkdownResult {
   html: string;
   toc: TocItem[];
+  issues: RenderIssue[];
 }

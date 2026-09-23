@@ -25,6 +25,7 @@ test('renders escaped metadata, classification, and nested TOC', async () => {
     assert.match(html, /cover-classification-badge confidential/);
     assert.match(html, /cover-stage-review">FOR REVIEW/);
     assert.match(html, /href="#start"><span class="toc-label">Start &amp; Go<\/span>/);
+    assert.match(html, /<span class="toc-page" data-toc-target="start"><\/span>/);
     assert.match(html, /href="#child"><span class="toc-label">Child<\/span>/);
   } finally {
     await rm(directory, { recursive: true, force: true });

@@ -1,11 +1,10 @@
 /* =============================================================================
-   Markdown document — HTML/PDF Stylesheet
-   Target: browser display and Playwright (headless Chromium) print rendering
-   Color system: green/neutral document palette
-   ============================================================================= */
+   md2pdf — HTML/PDF stylesheet (compact customer-document profile)
+   Target: headless Chromium print (Playwright) and on-screen HTML.
 
-/* =============================================================================
-   RESET & BASE
+   DO NOT EDIT DURING A RENDER TASK. Layout problems are fixed in the Markdown
+   source (see CONVENTIONS.md). Geometry below must match
+   src/layout-constants.ts (asserted by styles.test.ts).
    ============================================================================= */
 
 *,
@@ -17,12 +16,12 @@
 }
 
 /* =============================================================================
-   PAGE SETUP
+   PAGE SETUP — keep in sync with layout-constants.ts
    ============================================================================= */
 
 @page {
   size: A4;
-  margin: 25mm 20mm 20mm 20mm;
+  margin: 20mm 15mm 15mm 15mm;
   background-color: #FFFFFF;
 }
 
@@ -32,62 +31,64 @@
 }
 
 /* =============================================================================
-   CUSTOM PROPERTIES — document palette
+   TOKENS
    ============================================================================= */
 
 :root {
-  /* Text */
   --color-text-primary:   #001E2B;
   --color-text-secondary: #1A2B33;
   --color-text-muted:     #4A5860;
   --color-text-inverse:   #FFFFFF;
 
-  /* Brand */
-  --color-brand-accessible:  #00684A; /* green.dark2 — AA-safe on white */
-  --color-brand-decorative:  #00ED64; /* brand green — decorative only, NOT on white text */
+  --color-brand-accessible:  #00684A;
+  --color-brand-decorative:  #00ED64;
 
-  /* Interactive */
   --color-link:           #016BF8;
 
-  /* Surfaces */
   --color-bg-page:        #FFFFFF;
-  --color-bg-secondary:   #F9FBFA; /* gray.light3 */
+  --color-bg-secondary:   #F9FBFA;
 
-  /* Borders */
-  --color-border:         #E8EDEB; /* gray.light2 */
-  --color-table-border:   #D0D7DE; /* GitHub border.default */
-  --color-table-header:   #DDE3E7; /* stronger than striped rows, lighter than dark fill */
-  --color-table-stripe:   #F6F8FA; /* GitHub canvas.subtle */
+  --color-border:         #E8EDEB;
+  --color-table-border:   #D0D7DE;
+  --color-table-header:   #DDE3E7;
+  --color-table-stripe:   #F6F8FA;
   --color-shadow:         rgba(0, 30, 43, 0.12);
 
-  /* Semantic */
   --color-warning:        #FFC010;
   --color-error:          #DB3030;
   --color-info:           #016BF8;
   --color-tip:            #00684A;
   --color-important:      #B45AF2;
 
-  /* Typography scale (pt — print units) */
-  --font-size-body:       10.5pt;
+  /* Typography (pt — print units) */
+  --font-size-body:       10pt;
   --font-size-small:      9pt;
   --font-size-xsmall:     8pt;
-  --font-size-h1:         18pt;
-  --font-size-h2:         14pt;
-  --font-size-h3:         12pt;
-  --font-size-h4:         11pt;
+  --font-size-h1:         15pt;
+  --font-size-h2:         12.5pt;
+  --font-size-h3:         11pt;
+  --font-size-h4:         10pt;
+  --line-height-body:     1.5;
 
-  /* Font families */
-  --font-body:    "Pretendard Variable", Pretendard, Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: Inter, "Pretendard Variable", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-code:    "Source Code Pro", "Fira Code", "Cascadia Code", monospace;
+  /* Bundled fonts only (see src/fonts.ts). */
+  --font-body:    "md2pdf Sans", "md2pdf CJK SC", "md2pdf CJK TC", sans-serif;
+  --font-heading: var(--font-body);
+  --font-code:    "md2pdf Mono", "md2pdf Sans", "md2pdf CJK SC", "md2pdf CJK TC", monospace;
 
-  /* Spacing */
-  --space-xs:   4px;
-  --space-sm:   8px;
-  --space-md:   16px;
-  --space-lg:   24px;
-  --space-xl:   32px;
-  --space-xxl:  48px;
+  /* Vertical rhythm */
+  --space-block:  0.55em;  /* paragraph / list / block gap */
+  --space-xs:     2px;
+  --space-sm:     4px;
+  --space-md:     8px;
+  --space-lg:     12px;
+  --space-xl:     18px;
+}
+
+:root:lang(zh-Hant),
+:root:lang(zh-TW),
+:root:lang(zh-HK) {
+  --font-body: "md2pdf Sans", "md2pdf CJK TC", "md2pdf CJK SC", sans-serif;
+  --font-code: "md2pdf Mono", "md2pdf Sans", "md2pdf CJK TC", "md2pdf CJK SC", monospace;
 }
 
 /* =============================================================================
@@ -98,18 +99,24 @@ html {
   font-size: var(--font-size-body);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
-  color-adjust: exact;
 }
 
 body {
   font-family: var(--font-body);
   font-size: var(--font-size-body);
   font-weight: 400;
-  line-height: 1.6;
+  line-height: var(--line-height-body);
   color: var(--color-text-primary);
   background-color: var(--color-bg-page);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-wrap: break-word;
+}
+
+/* Korean: break between words, not between syllables ("캐시│를"). Chinese
+   has no spaces between words, so keep-all must not apply there. */
+:lang(ko) {
+  word-break: keep-all;
 }
 
 /* =============================================================================
@@ -119,59 +126,57 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   color: var(--color-text-primary);
-  line-height: 1.25;
-  margin-top: var(--space-xl);
-  margin-bottom: var(--space-md);
   font-weight: 700;
-  page-break-after: avoid;
+  line-height: 1.3;
   break-after: avoid;
+  page-break-after: avoid;
+  break-inside: avoid;
 }
 
 h1 {
   font-size: var(--font-size-h1);
-  font-weight: 700;
-  margin-top: 0;
-  padding-bottom: var(--space-sm);
+  margin: 22px 0 8px;
+  padding-bottom: 4px;
   border-bottom: 2px solid var(--color-brand-accessible);
-  page-break-before: always;
-  break-before: page;
 }
 
-/* First h1 on the main content must not force a new page */
-body > h1:first-of-type,
-.content > h1:first-of-type,
-article > h1:first-of-type,
-main > h1:first-of-type {
-  page-break-before: avoid;
+/* Optional chapter-per-page mode (front matter: chapter_break: page). */
+.chapter-break-page .content > h1 {
+  break-before: page;
+  page-break-before: always;
+}
+
+.content > :first-child,
+.content > h1:first-of-type {
+  margin-top: 0;
   break-before: avoid;
+  page-break-before: avoid;
 }
 
 h2 {
   font-size: var(--font-size-h2);
-  font-weight: 700;
-  padding-bottom: 6px;
+  margin: 16px 0 6px;
+  padding-bottom: 3px;
   border-bottom: 1px solid var(--color-border);
 }
 
 h3 {
   font-size: var(--font-size-h3);
-  font-weight: 600;
+  margin: 12px 0 4px;
 }
 
-h4 {
+h4, h5, h6 {
   font-size: var(--font-size-h4);
-  font-weight: 600;
-}
-
-h5 {
-  font-size: var(--font-size-body);
-  font-weight: 600;
+  margin: 10px 0 4px;
 }
 
 h6 {
-  font-size: var(--font-size-body);
-  font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+/* A heading directly after another heading needs no extra gap. */
+h1 + h2, h2 + h3, h3 + h4 {
+  margin-top: 6px;
 }
 
 /* =============================================================================
@@ -179,26 +184,43 @@ h6 {
    ============================================================================= */
 
 p {
-  margin-bottom: var(--space-md);
-  orphans: 3;
-  widows: 3;
+  margin: 0 0 var(--space-block);
+  orphans: 2;
+  widows: 2;
 }
 
 strong, b {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 em, i {
   font-style: italic;
 }
 
-/* =============================================================================
-   LINKS
-   ============================================================================= */
+/* CJK fonts have no italic; synthetic oblique looks broken. */
+:lang(ko) em, :lang(ko) i,
+:lang(zh) em, :lang(zh) i,
+:lang(ja) em, :lang(ja) i {
+  font-style: normal;
+  text-decoration: underline;
+  text-decoration-color: #9FB1AD;
+  text-underline-offset: 2px;
+}
 
 a {
   color: var(--color-link);
   text-decoration: none;
+}
+
+sup.ref-mark {
+  font-size: 0.72em;
+  line-height: 0;
+  margin-left: 1px;
+  vertical-align: super;
+}
+
+sup.ref-mark a {
+  color: var(--color-text-muted);
 }
 
 /* =============================================================================
@@ -207,62 +229,53 @@ a {
 
 code {
   font-family: var(--font-code);
-  font-size: 0.9em;
+  font-variant-ligatures: none;
+  font-feature-settings: "calt" 0, "liga" 0;
+  font-size: 0.88em;
   color: var(--color-text-primary);
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 3px;
-  padding: 2px 6px;
-  white-space: pre-wrap;
-  word-break: break-word;
+  padding: 0 3px;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 /* =============================================================================
    CODE BLOCKS
+   Lines are never soft-wrapped and the font is never shrunk: over-long lines
+   receive real newlines at the Markdown stage (src/codewrap.ts), sized to
+   CODE_TEXT_WIDTH_PX in layout-constants.ts. Short blocks stay on one page
+   (.keep-together); long blocks may continue on the next page.
    ============================================================================= */
 
-/*
- * Code lines are never soft-wrapped (white-space: pre, no word-break).
- * PDF pages have a fixed physical width and Chromium bakes any visual wrap
- * into the PDF text layer as a hard line break, so a wrapped line (or a word
- * split mid-token by word-break) gets pasted back as multiple broken lines
- * instead of the original single line. To keep 1:1 copy-paste fidelity
- * between source and pasted text, long lines are instead shrunk to fit via
- * ensureCodeBlocksFitWithoutWrapping() in pdf.ts (mirrors the cover-title
- * shrink-to-fit approach). overflow-x:auto is only a screen/HTML fallback
- * for the rare line that still can't be shrunk enough.
- */
-pre {
+.code-block {
+  margin: 0 0 0.7em;
+}
+
+pre,
+pre.shiki {
   font-family: var(--font-code);
   font-size: var(--font-size-small);
-  line-height: 1.55;
-  background-color: var(--color-bg-secondary);
+  line-height: 1.45;
+  background-color: var(--color-bg-secondary) !important;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 16px 20px;
-  margin-bottom: var(--space-md);
-  overflow-x: auto;
+  border-radius: 5px;
+  padding: 7px 12px;
   white-space: pre;
   word-break: normal;
   overflow-wrap: normal;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  tab-size: 4;
+  /* No programming ligatures: "=>" must look like what is pasted. */
+  font-variant-ligatures: none;
+  font-feature-settings: "calt" 0, "liga" 0;
+  overflow: hidden;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
-/* Shiki syntax-highlighted blocks */
-pre.shiki {
-  background-color: var(--color-bg-secondary) !important;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 16px 20px;
-  overflow-x: auto;
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-/* Reset inline code inside pre */
 pre code {
-  font-family: var(--font-code);
+  font-family: inherit;
   font-size: inherit;
   color: inherit;
   background: none;
@@ -274,32 +287,39 @@ pre code {
   overflow-wrap: normal;
 }
 
-/* Code block with file name tab */
-.code-block-wrapper {
-  margin-bottom: var(--space-md);
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
 .code-title {
   display: block;
-  font-family: var(--font-code);
-  font-size: var(--font-size-xsmall);
-  color: var(--color-text-secondary);
-  background-color: var(--color-border);
-  padding: 4px 12px;
-  border-radius: 6px 6px 0 0;
-  border: 1px solid var(--color-border);
-  border-bottom: none;
   width: fit-content;
   max-width: 100%;
-  word-break: break-all;
+  font-family: var(--font-code);
+  font-size: var(--font-size-xsmall);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  background-color: var(--color-border);
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  overflow-wrap: anywhere;
+  break-after: avoid;
 }
 
-.code-block-wrapper .code-title + pre,
-.code-block-wrapper .code-title + pre.shiki {
-  border-radius: 0 6px 6px 6px;
-  margin-bottom: 0;
+.code-block.has-title pre {
+  border-top-left-radius: 0;
+}
+
+/* =============================================================================
+   KEEP-TOGETHER POLICY
+   ============================================================================= */
+
+.keep-together,
+.admonition,
+.qa-block,
+figure,
+img,
+.priority-legend {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 /* =============================================================================
@@ -309,92 +329,66 @@ pre code {
 blockquote {
   border-left: 3px solid var(--color-border);
   color: var(--color-text-secondary);
-  font-style: italic;
-  padding-left: 20px;
-  margin: var(--space-md) 0;
+  padding: 2px 0 2px 12px;
+  margin: 0 0 var(--space-block);
 }
 
-blockquote p:last-child {
+blockquote > :last-child {
   margin-bottom: 0;
 }
-
-/* =============================================================================
-   HORIZONTAL RULES
-   ============================================================================= */
 
 hr {
   border: none;
   border-top: 1px solid var(--color-border);
-  margin: var(--space-xl) 0;
+  margin: var(--space-lg) 0;
 }
 
 /* =============================================================================
-   LISTS
+   LISTS — padding-left must stay <= NESTED_BLOCK_INDENT_PX
    ============================================================================= */
 
 ul, ol {
-  margin-bottom: var(--space-md);
-  padding-left: var(--space-xl);
+  margin: 0 0 var(--space-block);
+  padding-left: 22px;
 }
 
 li {
   margin-bottom: var(--space-xs);
-  line-height: 1.6;
 }
 
 li > p {
   margin-bottom: var(--space-xs);
 }
 
-/* Nested list indentation */
-ul ul,
-ul ol,
-ol ul,
-ol ol {
-  margin-top: var(--space-xs);
-  margin-bottom: var(--space-xs);
-  padding-left: var(--space-lg);
+li > ul, li > ol {
+  margin: var(--space-xs) 0 0;
 }
 
-ul {
-  list-style-type: disc;
-}
-
-ul ul {
-  list-style-type: circle;
-}
-
-ul ul ul {
-  list-style-type: square;
-}
-
-ol {
-  list-style-type: decimal;
-}
-
-ol ol {
-  list-style-type: lower-alpha;
-}
-
-ol ol ol {
-  list-style-type: lower-roman;
-}
+ul { list-style-type: disc; }
+ul ul { list-style-type: circle; }
+ul ul ul { list-style-type: square; }
+ol { list-style-type: decimal; }
+ol ol { list-style-type: lower-alpha; }
+ol ol ol { list-style-type: lower-roman; }
 
 /* =============================================================================
    TABLES
+   Column fitting is done by the layout pass (src/layout.ts): cells get
+   .nw (no wrap) when the table fits without wrapping; prose columns are
+   released first; long unbreakable strings get .brk. Font size never changes.
    ============================================================================= */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: var(--space-md);
+  table-layout: auto;
+  margin: 0 0 0.7em;
   font-size: var(--font-size-small);
-  break-inside: avoid;
-  page-break-inside: avoid;
+  line-height: 1.35;
 }
 
 thead {
-  display: table-header-group; /* repeat header on page break */
+  display: table-header-group;
 }
 
 thead tr {
@@ -402,26 +396,47 @@ thead tr {
   color: var(--color-text-primary);
 }
 
-thead th {
-  padding: 8px 13px;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  text-align: left;
+th,
+td {
+  padding: 4px 8px;
   border: 1px solid var(--color-table-border);
+  vertical-align: top;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
-tbody tr:nth-child(odd) {
-  background-color: var(--color-bg-page);
+th {
+  font-weight: 700;
 }
+
+/* GFM column alignment (| ---: | / | :---: |) */
+th[align="right"], td[align="right"] { text-align: right; }
+th[align="center"], td[align="center"] { text-align: center; }
 
 tbody tr:nth-child(even) {
   background-color: var(--color-table-stripe);
 }
 
-tbody td {
-  padding: 8px 13px;
-  border: 1px solid var(--color-table-border);
-  vertical-align: top;
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+td code,
+th code {
+  font-size: 0.92em;
+  padding: 0 3px;
+}
+
+th.nw, td.nw,
+th.nw code, td.nw code {
+  white-space: nowrap;
+}
+
+th.brk, td.brk,
+th.brk code, td.brk code {
+  overflow-wrap: anywhere;
 }
 
 /* =============================================================================
@@ -429,150 +444,72 @@ tbody td {
    ============================================================================= */
 
 figure {
-  margin: var(--space-lg) 0;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  margin: 0 0 var(--space-block);
 }
 
 img {
-  max-width: 100%;
-  height: auto;
   display: block;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px var(--color-shadow);
-}
-
-figcaption {
-  text-align: center;
-  font-style: italic;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-small);
-  margin-top: var(--space-sm);
-}
-
-/* Standalone image (not in figure) */
-p > img {
   max-width: 100%;
+  max-height: 125mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
   border: 1px solid var(--color-border);
   border-radius: 4px;
-  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+figcaption,
+.figure-caption {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  margin: 3px 0 var(--space-block);
+}
+
+.figure-caption em {
+  font-style: normal;
+  text-decoration: none;
+}
+
+p:has(> img:only-child) {
+  margin-bottom: 0;
+  break-after: avoid;
 }
 
 /* =============================================================================
-   ADMONITION BOXES
+   ADMONITIONS
    ============================================================================= */
 
 .admonition {
-  border-left: 4px solid var(--color-border);
-  border-radius: 0 6px 6px 0;
-  padding: 16px 20px;
-  margin: var(--space-md) 0;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  border-left: 3px solid var(--color-border);
+  border-radius: 0 5px 5px 0;
+  padding: 7px 12px;
+  margin: 0 0 0.7em;
 }
 
-.admonition p:last-child {
+.admonition > :last-child {
   margin-bottom: 0;
 }
 
 .admonition-title {
-  font-family: var(--font-heading);
   font-weight: 700;
-  font-size: var(--font-size-body);
-  margin-bottom: var(--space-sm);
-  display: block;
+  font-size: var(--font-size-small);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
-/* Note / Info */
-.admonition-note {
-  border-left-color: var(--color-info);
-  background-color: #F0F5FF;
-}
-
-.admonition-note .admonition-title {
-  color: var(--color-info);
-}
-
-.admonition-note .admonition-title::before {
-  content: "ℹ  ";
-}
-
-/* Tip */
-.admonition-tip {
-  border-left-color: var(--color-tip);
-  background-color: #E3FCF7;
-}
-
-.admonition-tip .admonition-title {
-  color: var(--color-tip);
-}
-
-.admonition-tip .admonition-title::before {
-  content: "✦  ";
-}
-
-/* Warning */
-.admonition-warning {
-  border-left-color: var(--color-warning);
-  background-color: #FFF8E6;
-}
-
-.admonition-warning .admonition-title {
-  color: #8A6200; /* darkened for AA on #FFF8E6 */
-}
-
-.admonition-warning .admonition-title::before {
-  content: "⚠  ";
-}
-
-/* Caution / Danger */
-.admonition-caution {
-  border-left-color: var(--color-error);
-  background-color: #FFF0F0;
-}
-
-.admonition-caution .admonition-title {
-  color: var(--color-error);
-}
-
-.admonition-caution .admonition-title::before {
-  content: "⛔  ";
-}
-
-/* Important */
-.admonition-important {
-  border-left-color: var(--color-important);
-  background-color: #F8F0FF;
-}
-
-.admonition-important .admonition-title {
-  color: #7B2FBE; /* darkened for AA on #F8F0FF */
-}
-
-.admonition-important .admonition-title::before {
-  content: "★  ";
-}
-
-/* =============================================================================
-   PAGE HEADER & FOOTER AREAS
-   ============================================================================= */
-
-.page-header {
-  font-size: var(--font-size-xsmall);
-  color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-xs);
-  margin-bottom: var(--space-lg);
-}
-
-.page-footer {
-  font-size: var(--font-size-xsmall);
-  color: var(--color-text-muted);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-xs);
-  margin-top: var(--space-lg);
-}
+.admonition-note { border-left-color: var(--color-info); background-color: #F0F5FF; }
+.admonition-note .admonition-title { color: var(--color-info); }
+.admonition-tip { border-left-color: var(--color-tip); background-color: #E3FCF7; }
+.admonition-tip .admonition-title { color: var(--color-tip); }
+.admonition-warning { border-left-color: var(--color-warning); background-color: #FFF8E6; }
+.admonition-warning .admonition-title { color: #8A6200; }
+.admonition-caution { border-left-color: var(--color-error); background-color: #FFF0F0; }
+.admonition-caution .admonition-title { color: var(--color-error); }
+.admonition-important { border-left-color: var(--color-important); background-color: #F8F0FF; }
+.admonition-important .admonition-title { color: #7B2FBE; }
 
 /* =============================================================================
    COVER PAGE
@@ -582,35 +519,25 @@ p > img {
   page: cover;
   width: 100%;
   height: 297mm;
-  min-height: 297mm;
   background-color: var(--color-text-primary);
   color: var(--color-text-inverse);
   padding: 60px 56px 48px 56px;
   position: relative;
-  page-break-after: always;
   break-after: page;
+  page-break-after: always;
   display: block;
   overflow: hidden;
+  word-break: keep-all;
 }
 
-/* Logo placeholder */
 .cover-logo {
   display: block;
-  margin-bottom: 48px;
+  margin: 0 0 48px;
   height: 40px;
   width: auto;
+  max-height: none;
   border: none;
   border-radius: 0;
-  box-shadow: none;
-}
-
-.cover-logo-placeholder {
-  display: block;
-  width: 160px;
-  height: 40px;
-  background-color: var(--color-brand-decorative);
-  border-radius: 4px;
-  margin-bottom: 48px;
 }
 
 .cover-brand {
@@ -618,28 +545,16 @@ p > img {
   align-items: center;
   gap: 12px;
   margin-bottom: 48px;
-  color: var(--color-text-inverse);
-  font-family: var(--font-heading);
   font-size: 24pt;
   font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.cover-brand-leaf {
-  width: 24px;
-  height: 40px;
-  color: var(--color-brand-decorative);
-  flex: none;
 }
 
 .cover-stage {
   position: absolute;
   top: 60px;
   right: 56px;
-  display: inline-block;
   padding: 6px 12px;
   border-radius: 3px;
-  font-family: var(--font-heading);
   font-size: var(--font-size-small);
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -651,167 +566,104 @@ p > img {
   background-color: rgba(148, 79, 0, 0.35);
 }
 
-/* Green accent line */
 .cover-accent {
   display: block;
   width: 64px;
   height: 4px;
   background-color: var(--color-brand-decorative);
   border-radius: 2px;
-  margin-bottom: var(--space-lg);
+  margin-bottom: 24px;
 }
 
-/* Cover text */
 .cover-title {
-  font-family: var(--font-heading);
   font-size: 28pt;
   font-weight: 700;
   line-height: 1.2;
   color: var(--color-text-inverse);
-  margin-bottom: var(--space-md);
+  margin: 0 0 16px;
   letter-spacing: -0.5px;
   border-bottom: none;
   padding-bottom: 0;
-  page-break-before: avoid;
   break-before: avoid;
-  word-break: keep-all;
   overflow-wrap: break-word;
 }
 
 .cover-subtitle {
-  font-family: var(--font-body);
   font-size: 18pt;
-  font-weight: 400;
   color: #FFFFFF;
-  margin-bottom: var(--space-xl);
+  margin-bottom: 32px;
   line-height: 1.4;
 }
 
-.cover-customer {
-  margin: 0 0 var(--space-xl);
-  color: #FFFFFF;
-  overflow-wrap: anywhere;
-}
-
-.cover-customer span {
-  display: block;
-  margin-bottom: var(--space-xs);
-  color: #00ED64;
-  font-family: var(--font-heading);
-  font-size: var(--font-size-xsmall);
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.cover-customer strong {
-  display: block;
-  color: #FFFFFF;
-  font-family: var(--font-heading);
-  font-size: 16pt;
-  font-weight: 600;
-}
-
-.cover-meta {
-  font-family: var(--font-body);
-  font-size: var(--font-size-body);
-  font-weight: 400;
-  color: #FFFFFF;
-  margin-bottom: var(--space-xs);
-  line-height: 1.5;
-}
-
-.cover-meta strong {
-  color: #00ED64;
-  font-weight: 700;
-}
-
-.cover-version,
-.cover-date,
-.cover-author {
-  font-size: var(--font-size-small);
-  color: #FFFFFF;
-  margin-bottom: var(--space-xs);
-}
-
-.cover-author strong,
-.cover-meta strong {
-  color: #00ED64;
-  font-weight: 700;
-}
-
+.cover-customer,
 .cover-project {
-  margin: 0 0 var(--space-xl);
+  margin: 0 0 28px;
   color: #FFFFFF;
   overflow-wrap: anywhere;
 }
 
-.cover-project span {
+.cover-customer span,
+.cover-project span,
+.cover-participants-label {
   display: block;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 4px;
   color: #00ED64;
-  font-family: var(--font-heading);
   font-size: var(--font-size-xsmall);
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 
+.cover-customer strong,
 .cover-project strong {
   display: block;
   color: #FFFFFF;
-  font-family: var(--font-heading);
   font-size: 16pt;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.cover-meta {
+  font-size: var(--font-size-body);
+  color: #FFFFFF;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.cover-version,
+.cover-date {
+  font-size: var(--font-size-small);
+  color: #FFFFFF;
+  margin-bottom: 4px;
+}
+
+.cover-meta strong {
+  color: #00ED64;
+  font-weight: 700;
 }
 
 .cover-participants {
-  font-family: var(--font-body);
   font-size: var(--font-size-small);
-  font-weight: 400;
   color: #E3FCF7;
   line-height: 1.6;
-  margin-bottom: var(--space-xl);
-  max-width: 100%;
+  margin: 28px 0 32px;
   overflow-wrap: anywhere;
 }
 
-.cover-participants-label {
-  display: block;
-  margin-bottom: var(--space-xs);
-  color: #00ED64;
-  font-family: var(--font-heading);
-  font-size: var(--font-size-xsmall);
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-/* Classification badge — pinned to bottom */
 .cover-classification {
   position: absolute;
   bottom: 48px;
   left: 56px;
   right: 56px;
-  display: block;
 }
 
 .cover-classification-badge {
   display: inline-block;
-  font-family: var(--font-heading);
   font-size: var(--font-size-xsmall);
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--color-text-primary);
-  background-color: var(--color-brand-decorative);
   padding: 4px 12px;
   border-radius: 3px;
-}
-
-.cover-classification-badge.internal {
-  background-color: var(--color-brand-decorative);
-  color: var(--color-text-primary);
 }
 
 .cover-classification-badge.confidential {
@@ -820,13 +672,6 @@ p > img {
   border: 1px solid #00ED64;
 }
 
-.cover-classification-badge.public {
-  background-color: rgba(255, 255, 255, 0.20);
-  color: var(--color-text-inverse);
-  border: 1px solid rgba(255, 255, 255, 0.40);
-}
-
-/* Decorative corner element */
 .cover-page::after {
   content: "";
   position: absolute;
@@ -845,32 +690,20 @@ p > img {
    ============================================================================= */
 
 .toc {
-  margin-bottom: var(--space-xl);
-  page-break-after: always;
   break-after: page;
+  page-break-after: always;
 }
 
-.toc h2,
 .toc-title {
-  font-family: var(--font-heading);
   font-size: var(--font-size-h2);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-sm);
-  position: relative;
-  page-break-before: avoid;
-  break-before: avoid;
-}
-
-/* Decorative accent rule under the TOC title, echoing the cover page accent */
-.toc-title {
+  margin: 0 0 14px;
+  padding-bottom: 6px;
   border-bottom: none;
+  position: relative;
 }
 
 .toc-title::after {
   content: "";
-  display: block;
   position: absolute;
   left: 0;
   bottom: 0;
@@ -880,25 +713,21 @@ p > img {
   background: linear-gradient(90deg, var(--color-brand-decorative) 0%, var(--color-brand-accessible) 100%);
 }
 
-.toc ul,
-.toc ol {
+.toc ul {
   list-style: none;
   padding-left: 0;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .toc li {
-  margin-bottom: 0;
-  line-height: 1.55;
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* Level 1 (chapters): generous spacing + top rule so each chapter reads as
-   its own row in an index, not just another line of text. */
 .toc > ul > li {
-  font-weight: 600;
-  font-size: var(--font-size-body);
-  margin-top: var(--space-md);
-  padding-top: var(--space-sm);
+  font-weight: 700;
+  margin-top: 6px;
+  padding-top: 4px;
   border-top: 1px solid var(--color-border);
 }
 
@@ -908,127 +737,122 @@ p > img {
   border-top: none;
 }
 
-/* Level 2 */
 .toc > ul > li > ul {
-  padding-left: var(--space-lg);
-  margin-top: 4px;
-  border-left: 2px solid var(--color-border);
+  padding-left: 18px;
+  margin-top: 1px;
 }
 
-.toc > ul > li > ul > li {
+.toc > ul > li > ul li {
   font-weight: 400;
   font-size: var(--font-size-small);
   color: var(--color-text-secondary);
-  padding-left: var(--space-sm);
 }
 
-/* Level 3 */
 .toc > ul > li > ul > li > ul {
-  padding-left: var(--space-md);
-  border-left: 2px solid var(--color-border);
+  padding-left: 18px;
 }
 
-.toc > ul > li > ul > li > ul > li {
-  font-size: var(--font-size-small);
+.toc > ul > li > ul > li > ul li {
   color: var(--color-text-muted);
-  font-style: italic;
-  padding-left: var(--space-sm);
 }
 
-/* TOC entry with dotted leader */
 .toc-entry {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.toc-entry a {
-  color: var(--color-text-primary);
-  text-decoration: none;
-  float: left;
-  padding-right: 4px;
-  background-color: var(--color-bg-page);
-  position: relative;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  break-inside: avoid;
 }
 
-/* Chapter-number badge — pill chip in the brand accent, only rendered for
-   headings that start with a manual number (e.g. "1", "5.3.1"). */
+.toc > ul > li > ul .toc-entry {
+  color: var(--color-text-secondary);
+}
+
 .toc-num {
-  display: inline-block;
-  flex-shrink: 0;
-  font-family: var(--font-heading);
+  flex: none;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 0.8em;
-  line-height: 1.6;
-  padding: 0 8px;
+  line-height: 1.5;
+  padding: 0 7px;
   border-radius: 999px;
-  background-color: var(--color-mist, #E3FCF7);
+  background-color: #E3FCF7;
   color: var(--color-brand-accessible);
   border: 1px solid #B8E7D6;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color-adjust: exact;
 }
 
-.toc > ul > li > ul .toc-num,
-.toc > ul > li > ul > li > ul .toc-num {
+.toc > ul > li > ul .toc-num {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-secondary);
   border-color: var(--color-border);
-  font-weight: 600;
 }
 
 .toc-label {
-  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
-.toc-entry::after {
-  content: " ........................................................................................................";
-  letter-spacing: 1px;
-  color: var(--color-border);
-  font-size: 0.85em;
+.toc-leader {
+  flex: 1 1 auto;
+  min-width: 12px;
+  border-bottom: 1px dotted #B8C4C2;
+  transform: translateY(-3px);
 }
 
-.toc > ul > li > .toc-entry::after {
-  color: #B8E7D6;
-}
-
-.toc-entry .toc-page {
-  float: right;
-  padding-left: 4px;
-  background-color: var(--color-bg-page);
-  color: var(--color-text-secondary);
+.toc-page {
+  flex: none;
+  min-width: 1.6em;
+  padding-right: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
   font-size: var(--font-size-small);
-  position: relative;
-}
-
-/* =============================================================================
-   DEFINITION LISTS
-   ============================================================================= */
-
-dl {
-  margin-bottom: var(--space-md);
-}
-
-dt {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-sm);
-}
-
-dd {
-  padding-left: var(--space-lg);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
+}
+
+.toc-page:empty {
+  min-width: 0;
 }
 
 /* =============================================================================
-   KEYBOARD / ABBREVIATIONS
+   REFERENCES (external links collected at the end)
    ============================================================================= */
+
+ol.references {
+  list-style: none;
+  padding-left: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+}
+
+ol.references li {
+  margin-bottom: 3px;
+  padding-left: 2.6em;
+  text-indent: -2.6em;
+  break-inside: avoid;
+}
+
+.ref-num {
+  display: inline-block;
+  width: 2.4em;
+  text-indent: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ref-url {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* =============================================================================
+   MISC INLINE
+   ============================================================================= */
+
+dl { margin-bottom: var(--space-block); }
+dt { font-weight: 700; margin-top: var(--space-sm); }
+dd { padding-left: 18px; color: var(--color-text-secondary); margin-bottom: var(--space-xs); }
 
 kbd {
   font-family: var(--font-code);
@@ -1037,127 +861,67 @@ kbd {
   border: 1px solid var(--color-border);
   border-bottom-width: 2px;
   border-radius: 3px;
-  padding: 1px 5px;
-  color: var(--color-text-primary);
+  padding: 0 4px;
 }
-
-abbr[title] {
-  text-decoration: underline dotted var(--color-text-muted);
-  cursor: help;
-}
-
-/* =============================================================================
-   MARK / HIGHLIGHT
-   ============================================================================= */
 
 mark {
   background-color: #FFF8C5;
   color: var(--color-text-primary);
-  padding: 1px 3px;
+  padding: 0 2px;
   border-radius: 2px;
 }
 
 .page-break {
-  page-break-before: always;
   break-before: page;
+  page-break-before: always;
 }
 
 /* =============================================================================
-   PRIORITY BADGES (Recommendation headings)
+   PRIORITY BADGES & LEGEND
    ============================================================================= */
 
 .priority-badge {
   display: inline-block;
-  font-family: var(--font-heading);
-  font-size: 9pt;
+  font-size: 8pt;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 2px 10px;
+  letter-spacing: 0.4px;
+  padding: 1px 8px;
   border-radius: 999px;
-  margin-left: 12px;
-  vertical-align: middle;
+  margin-left: 8px;
+  vertical-align: 2px;
   white-space: nowrap;
   line-height: 1.4;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color-adjust: exact;
 }
 
-.priority-1 {
-  background-color: #FFF0F0;
-  color: #B91C1C;
-  border: 1px solid #FCA5A5;
-}
-
-.priority-2 {
-  background-color: #FFF8E6;
-  color: #8A6200;
-  border: 1px solid #FFC010;
-}
-
-.priority-3 {
-  background-color: #E3FCF7;
-  color: var(--color-brand-accessible);
-  border: 1px solid #5EEAD4;
-}
-
-/* Keep badge + heading together */
-h1, h2, h3, h4, h5, h6 {
-  page-break-after: avoid;
-  break-after: avoid;
-}
-
-/* =============================================================================
-   PRIORITY LEGEND (auto-injected before Recommendations)
-   ============================================================================= */
+.priority-1 { background-color: #FFF0F0; color: #B91C1C; border: 1px solid #FCA5A5; }
+.priority-2 { background-color: #FFF8E6; color: #8A6200; border: 1px solid #FFC010; }
+.priority-3 { background-color: #E3FCF7; color: var(--color-brand-accessible); border: 1px solid #5EEAD4; }
 
 .priority-legend {
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-brand-accessible);
-  border-radius: 0 6px 6px 0;
-  padding: 16px 20px;
-  margin: var(--space-lg) 0 var(--space-xl);
-  break-inside: avoid;
-  page-break-inside: avoid;
+  border-left: 3px solid var(--color-brand-accessible);
+  border-radius: 0 5px 5px 0;
+  padding: 8px 12px;
+  margin: 0 0 0.8em;
 }
 
 .priority-legend-title {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-h4);
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin-top: 0;
-  margin-bottom: var(--space-md);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
 }
 
 .priority-legend-table {
-  width: 100%;
-  font-size: var(--font-size-small);
-  margin-bottom: var(--space-md);
-}
-
-.priority-legend-table th,
-.priority-legend-table td {
-  border: 1px solid var(--color-table-border);
-  padding: 8px 13px;
-  vertical-align: top;
-  text-align: left;
-}
-
-.priority-legend-table thead tr {
-  background-color: var(--color-table-header);
-}
-
-.priority-legend-table tbody tr:nth-child(even) {
-  background-color: var(--color-table-stripe);
+  margin-bottom: 6px;
 }
 
 .priority-legend-table td:first-child {
   white-space: nowrap;
   width: 1%;
+}
+
+.priority-legend-table .priority-badge {
+  margin-left: 0;
 }
 
 .priority-legend-notice {
@@ -1166,165 +930,95 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0;
 }
 
-.priority-legend-notice strong {
-  color: var(--color-text-primary);
-}
-
-@media print {
-  .priority-badge,
-  .priority-1,
-  .priority-2,
-  .priority-3 {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  .priority-legend {
-    background-color: var(--color-bg-secondary) !important;
-    border-left-color: var(--color-brand-accessible) !important;
-  }
-  .priority-legend-table thead tr {
-    background-color: var(--color-table-header) !important;
-  }
-  .priority-legend-table tbody tr:nth-child(even) {
-    background-color: var(--color-table-stripe) !important;
-  }
-}
-
 /* =============================================================================
    Q&A PAIRS
    ============================================================================= */
 
 .qa-block {
-  margin: var(--space-md) 0;
-  padding: 12px 16px 12px 48px;
-  border-radius: 6px;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  margin: 0 0 var(--space-sm);
+  padding: 5px 10px 5px 36px;
+  border-radius: 5px;
   position: relative;
-  line-height: 1.6;
 }
 
-.qa-block p {
-  margin-bottom: 0;
+.qa-block + :not(.qa-block) {
+  margin-top: var(--space-md);
 }
 
 .qa-question {
   background-color: #F0F5FF;
-  border-left: 4px solid var(--color-info);
-  margin-bottom: var(--space-xs);
+  border-left: 3px solid var(--color-info);
 }
 
 .qa-answer {
   background-color: var(--color-bg-secondary);
-  border-left: 4px solid var(--color-border);
+  border-left: 3px solid var(--color-border);
 }
 
 .qa-label {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  left: 9px;
+  top: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  font-family: var(--font-heading);
   font-size: var(--font-size-xsmall);
   font-weight: 700;
   line-height: 1;
   color: var(--color-text-inverse);
 }
 
-.qa-label-question {
-  background-color: var(--color-info);
-}
-
-.qa-label-answer {
-  background-color: var(--color-text-secondary);
-}
-
-@media print {
-  .qa-question {
-    background-color: #F0F5FF !important;
-    border-left-color: var(--color-info) !important;
-  }
-  .qa-answer {
-    background-color: var(--color-bg-secondary) !important;
-    border-left-color: var(--color-border) !important;
-  }
-  .qa-block {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-}
+.qa-label-question { background-color: var(--color-info); }
+.qa-label-answer { background-color: var(--color-text-secondary); }
 
 /* =============================================================================
-   CHECKLISTS (GFM task lists)
+   CHECKLISTS (GFM task lists) — drawn with CSS, no symbol glyphs
    ============================================================================= */
 
-ul.contains-task-list,
+ul.contains-task-list {
+  list-style: none;
+  padding-left: 2px;
+}
+
 li.task-list-item {
   list-style: none;
-  padding-left: 0;
-}
-
-li.task-list-item {
-  margin-bottom: var(--space-sm);
-  padding-left: 4px;
-  line-height: 1.6;
-}
-
-li.task-list-item::before {
-  content: none;
 }
 
 .task-list-item-checkbox {
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-right: 8px;
-  margin-left: 0;
-  vertical-align: middle;
-  border: 2px solid var(--color-text-secondary);
+  width: 12px;
+  height: 12px;
+  margin: 0 7px 0 0;
+  vertical-align: -1px;
+  border: 1.5px solid var(--color-text-secondary);
   border-radius: 3px;
   background-color: var(--color-bg-page);
   position: relative;
-  top: -1px;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color-adjust: exact;
 }
 
-.task-list-item-checkbox[checked] {
+.task-list-item-checkbox.checked {
   background-color: var(--color-brand-accessible);
   border-color: var(--color-brand-accessible);
 }
 
-.task-list-item-checkbox[checked]::after {
-  content: "✓";
+.task-list-item-checkbox.checked::after {
+  content: "";
   position: absolute;
-  top: -2px;
-  left: 1px;
-  color: var(--color-text-inverse);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
+  left: 3px;
+  top: 0;
+  width: 3px;
+  height: 7px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
-@media print {
-  .task-list-item-checkbox,
-  .task-list-item-checkbox[checked] {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  .task-list-item-checkbox[checked] {
-    background-color: var(--color-brand-accessible) !important;
-    border-color: var(--color-brand-accessible) !important;
-  }
-}
+/* =============================================================================
+   SCREEN (HTML) — same text width as print so fitted tables look identical
+   ============================================================================= */
 
 @media screen {
   body {
@@ -1343,31 +1037,28 @@ li.task-list-item::before {
   .cover-page {
     height: auto;
     min-height: min(297mm, 100vh);
-    margin-bottom: var(--space-lg);
+    margin-bottom: 18px;
   }
 
   .toc,
   .content {
-    padding: 20mm;
+    padding: 15mm;
     background-color: var(--color-bg-page);
+    margin-bottom: 18px;
   }
 
-  .toc {
-    margin-bottom: var(--space-lg);
-    page-break-after: auto;
-    break-after: auto;
+  pre {
+    overflow-x: auto;
   }
 
-  .content {
-    margin-bottom: var(--space-lg);
+  .toc-page {
+    display: none;
   }
 
   .page-break {
-    margin-top: var(--space-xxl);
-    padding-top: var(--space-xl);
+    margin-top: 24px;
+    padding-top: 18px;
     border-top: 2px solid var(--color-border);
-    page-break-before: auto;
-    break-before: auto;
   }
 }
 
@@ -1394,135 +1085,19 @@ li.task-list-item::before {
 
   .toc,
   .content {
-    padding: 32px 24px;
+    padding: 24px 18px;
   }
 }
 
 /* =============================================================================
-   PRINT MEDIA
+   PRINT
    ============================================================================= */
 
 @media print {
-  /* Base print overrides */
-  html,
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-    font-size: var(--font-size-body);
-  }
-
-  /* Avoid orphaned headings */
-  h1, h2, h3, h4, h5, h6 {
-    page-break-after: avoid;
-    break-after: avoid;
-  }
-
-  body > h1:first-of-type,
-  .content > h1:first-of-type,
-  article > h1:first-of-type {
-    page-break-before: avoid;
-    break-before: avoid;
-  }
-
-  /* Keep these blocks together */
-  pre,
-  pre.shiki,
-  .code-block-wrapper,
-  .admonition,
-  figure,
-  table {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Widows & orphans */
-  p {
-    orphans: 3;
-    widows: 3;
-  }
-
-  /* No blank pages from cover-page break */
-  .cover-page {
-    page-break-after: always;
-    break-after: page;
-  }
-
-  /* Keep table header on each page */
-  thead {
-    display: table-header-group;
-  }
-
-  tfoot {
-    display: table-footer-group;
-  }
-
-  /* Avoid breaking a row across pages */
-  tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Ensure colors render in print */
-  thead tr {
-    background-color: var(--color-table-header) !important;
-    color: var(--color-text-primary) !important;
-  }
-
-  tbody tr:nth-child(even) {
-    background-color: var(--color-table-stripe) !important;
-  }
-
-  .admonition-note {
-    background-color: #F0F5FF !important;
-  }
-
-  .admonition-tip {
-    background-color: #E3FCF7 !important;
-  }
-
-  .admonition-warning {
-    background-color: #FFF8E6 !important;
-  }
-
-  .admonition-caution {
-    background-color: #FFF0F0 !important;
-  }
-
-  .admonition-important {
-    background-color: #F8F0FF !important;
-  }
-
-  pre,
-  pre.shiki {
-    background-color: var(--color-bg-secondary) !important;
-  }
-
-  code {
-    background-color: var(--color-bg-secondary) !important;
-  }
-
-  /* Hide interactive / screen-only UI */
   nav:not(.toc),
   .no-print,
   button,
   [role="navigation"] {
     display: none !important;
-  }
-
-  /* Links — show URL after link text for references */
-  a[href^="http"]::after,
-  a[href^="https"]::after {
-    content: " (" attr(href) ")";
-    font-size: 0.8em;
-    color: var(--color-text-muted);
-    word-break: break-all;
-  }
-
-  /* Suppress URL display for internal anchors and cover page links */
-  a[href^="#"]::after,
-  .cover-page a::after,
-  .toc a::after {
-    content: none;
   }
 }

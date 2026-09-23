@@ -3,14 +3,28 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { DocumentMeta, PdfStage } from './types.js';
+import { analyzePdf, headingPositions, openPdf, writePagePngs, type LayoutAnalysis } from './check.js';
+import { BUNDLED_FONT_NAMES, buildFontFaceCss, FONT_FAMILY } from './fonts.js';
+import {
+  applyTocPageNumbers,
+  collectBreakTargets,
+  findHorizontalOverflow,
+  findOverflowingCode,
+  fitTables,
+} from './layout.js';
+import {
+  CONTENT_WIDTH_PX,
+  MM_TO_PX,
+  PAGE_MARGIN_BOTTOM_MM,
+  PAGE_MARGIN_SIDE_MM,
+  PAGE_MARGIN_TOP_MM,
+  PAGE_WIDTH_MM,
+} from './layout-constants.js';
+import type { DocumentMeta, PdfStage, RenderIssue } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// Official MongoDB brand asset (leaf + wordmark) from
-// https://www.mongodb.com/company/newsroom/brand-resources. The slate-blue
-// variant is used here because the print header sits on a white page
-// background; the cover page uses the white variant instead (see
-// template.ts), since its background is dark.
+// Official MongoDB brand asset (leaf + wordmark). The slate-blue variant is
+// used in the print header (white page); the cover uses the white variant.
 const LOGO_PATH = resolve(__dirname, '../assets/mongodb-logo-slate-blue.svg');
 
 function escapeHtml(value: string): string {
@@ -23,13 +37,21 @@ function escapeHtml(value: string): string {
 }
 
 function logoDataUri(): string {
-  let svg: string;
   try {
-    svg = readFileSync(LOGO_PATH, 'utf-8');
+    return `data:image/svg+xml;base64,${readFileSync(LOGO_PATH).toString('base64')}`;
   } catch {
     return '';
   }
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
+const CHROME_FONT = `'${FONT_FAMILY.sans}', '${FONT_FAMILY.sc}', '${FONT_FAMILY.tc}', sans-serif`;
+
+function chromeFontCss(text: string, language?: string): string {
+  try {
+    return `<style>${buildFontFaceCss('', text, language).css}</style>`;
+  } catch {
+    return '';
+  }
 }
 
 export function buildHeaderTemplate(stage: PdfStage): string {
@@ -38,19 +60,20 @@ export function buildHeaderTemplate(stage: PdfStage): string {
     : '';
   const logoUri = logoDataUri();
   const logo = logoUri
-    ? `<img src="${logoUri}" alt="MongoDB" style="height:22px; width:auto; display:block;" />`
+    ? `<img src="${logoUri}" alt="MongoDB" style="height:20px; width:auto; display:block;" />`
     : '';
-  return `<div style="width:100%; padding:0 20mm; font-family:'Pretendard Variable', Pretendard, Inter, Arial, sans-serif; line-height:1; display:flex; align-items:center; justify-content:space-between;">
+  return `${chromeFontCss('CONFIDENTIAL FOR REVIEW')}<div style="width:100%; padding:0 ${PAGE_MARGIN_SIDE_MM}mm; font-family:${CHROME_FONT}; line-height:1; display:flex; align-items:center; justify-content:space-between;">
   <span><span style="display:inline-block; padding:3px 8px; border:1px solid #B8E7D6; border-radius:3px; background:#E3FCF7; color:#00684A; font-size:7px; font-weight:700; letter-spacing:0.9px;">CONFIDENTIAL</span>${review}</span>
   ${logo}
 </div>`;
 }
 
 export function buildFooterTemplate(
-  meta: Pick<DocumentMeta, 'title' | 'customer' | 'copyrightYear'>,
+  meta: Pick<DocumentMeta, 'title' | 'customer' | 'copyrightYear'> & { language?: string },
 ): string {
   const year = meta.copyrightYear ?? String(new Date().getFullYear());
-  return `<div style="font-size:8px; width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 20mm; color:#4A5860; font-family:'Pretendard Variable', Pretendard, Inter, Arial, sans-serif;">
+  const text = `Prepared for: ${meta.customer} ${meta.title} 0123456789 / · © ${year} MongoDB, Inc.`;
+  return `${chromeFontCss(text, meta.language)}<div style="font-size:8px; width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 ${PAGE_MARGIN_SIDE_MM}mm; color:#4A5860; font-family:${CHROME_FONT};">
   <span style="max-width:38%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Prepared for: ${escapeHtml(meta.customer)}</span>
   <span style="max-width:38%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;">${escapeHtml(meta.title)}</span>
   <span style="white-space:nowrap;"><span class="pageNumber"></span> / <span class="totalPages"></span> &middot; &copy; ${escapeHtml(year)} MongoDB, Inc.</span>
@@ -67,317 +90,270 @@ export async function waitForContentReady(page: Page): Promise<void> {
           image.addEventListener('error', () => rejectImage(new Error(`Image failed to load: ${image.src}`)), { once: true });
         });
       }
-      if (image.naturalWidth === 0) {
-        throw new Error(`Image failed to render: ${image.src}`);
-      }
+      if (image.naturalWidth === 0) throw new Error(`Image failed to render: ${image.src}`);
       await image.decode();
     }));
   });
 }
 
-interface CoverTitleMeasurement {
-  text: string;
-  height: number;
-  lineHeight: number;
-  lineCount: number;
-  fontSize: string;
-}
+// ---------------------------------------------------------------------------
+// Cover title (the only element that is ever resized)
+// ---------------------------------------------------------------------------
 
-function measureCoverTitle(page: Page): Promise<CoverTitleMeasurement | null> {
+const MIN_COVER_TITLE_PT = 16;
+const MAX_COVER_TITLE_PT = 28;
+const A4_WIDTH_PX = Math.round(PAGE_WIDTH_MM * MM_TO_PX);
+
+async function coverTitleLines(page: Page): Promise<{ lines: number; text: string } | null> {
   return page.evaluate(() => {
     const el = document.querySelector('.cover-title');
     if (!el) return null;
     const style = getComputedStyle(el);
     const range = document.createRange();
     range.selectNodeContents(el);
-    const rect = range.getBoundingClientRect();
-    const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1.2);
-    const lineCount = Math.round(rect.height / lineHeight);
-    return {
-      text: (el as HTMLElement).innerText,
-      height: rect.height,
-      lineHeight,
-      lineCount,
-      fontSize: style.fontSize,
-    };
+    const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
+    return { lines: Math.round(range.getBoundingClientRect().height / lineHeight), text: (el as HTMLElement).innerText };
   });
 }
 
-const MIN_COVER_TITLE_PT = 16;
-const MAX_COVER_TITLE_PT = 28;
-
-/**
- * Auto-shrinks the .cover-title font size in 1pt steps, against the real A4
- * print width (794 CSS px @ 210mm), until the title fits on a single line.
- * Mutates the live DOM so both PDF rendering and screenshot capture reflect
- * the adjusted size. Throws if even the minimum readable size still wraps.
- */
+/** Shrinks the cover title in 1pt steps (28pt -> 16pt) until it fits one line. */
 export async function ensureCoverTitleFitsOneLine(page: Page): Promise<void> {
-  let info = await measureCoverTitle(page);
+  let info = await coverTitleLines(page);
   let pt = MAX_COVER_TITLE_PT;
-  while (info && info.lineCount > 1 && pt > MIN_COVER_TITLE_PT) {
+  while (info && info.lines > 1 && pt > MIN_COVER_TITLE_PT) {
     pt -= 1;
     await page.evaluate((size) => {
       const el = document.querySelector('.cover-title') as HTMLElement | null;
       if (el) el.style.fontSize = `${size}pt`;
     }, pt);
-    info = await measureCoverTitle(page);
+    info = await coverTitleLines(page);
   }
-  if (info && info.lineCount > 1) {
+  if (info && info.lines > 1) {
     throw new Error(
-      `Cover title still wraps to ${info.lineCount} lines even at the minimum ${MIN_COVER_TITLE_PT}pt ` +
-      `(height=${info.height.toFixed(1)}px, lineHeight=${info.lineHeight.toFixed(1)}px). ` +
-      `Title: "${info.text}". Shorten the title in front matter.`,
+      `Cover title still wraps to ${info.lines} lines even at ${MIN_COVER_TITLE_PT}pt. `
+      + `Title: "${info.text}". Shorten the title in front matter.`,
     );
   }
 }
 
-const MIN_CODE_FONT_PX = 6;
-const CODE_FONT_STEP_PX = 0.5;
+// ---------------------------------------------------------------------------
+// Fallback font detection
+// ---------------------------------------------------------------------------
 
-// Must match the `@page { margin: 25mm 20mm 20mm 20mm; }` rule in
-// styles.css (only the left/right values matter here).
-const A4_WIDTH_PX = 794;
-const PAGE_MARGIN_LEFT_MM = 20;
-const PAGE_MARGIN_RIGHT_MM = 20;
-const mmToPx = (mm: number): number => (mm / 25.4) * 96;
-const PRINTABLE_CONTENT_WIDTH_PX = Math.round(
-  A4_WIDTH_PX - mmToPx(PAGE_MARGIN_LEFT_MM) - mmToPx(PAGE_MARGIN_RIGHT_MM),
-);
+interface CdpNode {
+  nodeId: number;
+  nodeType: number;
+  nodeName: string;
+  nodeValue?: string;
+  children?: CdpNode[];
+}
 
-interface CodeBlockShrinkResult {
-  shrunkCount: number;
-  stillOverflowing: string[];
+async function findFallbackFonts(page: Page): Promise<RenderIssue[]> {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 }) as { root: CdpNode };
+    const targets: Array<{ nodeId: number; text: string }> = [];
+    const visitNode = (node: CdpNode): void => {
+      if (node.nodeType === 1 && /^(HEAD|STYLE|SCRIPT|TITLE)$/.test(node.nodeName)) return;
+      const text = (node.children ?? [])
+        .filter((c) => c.nodeType === 3)
+        .map((c) => c.nodeValue ?? '')
+        .join('')
+        .trim();
+      if (node.nodeType === 1 && text) targets.push({ nodeId: node.nodeId, text });
+      for (const child of node.children ?? []) visitNode(child);
+    };
+    visitNode(root);
+
+    const offenders = new Map<string, Set<string>>();
+    const batch = 64;
+    for (let i = 0; i < targets.length; i += batch) {
+      await Promise.all(targets.slice(i, i + batch).map(async ({ nodeId, text }) => {
+        try {
+          const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId }) as {
+            fonts: Array<{ familyName: string; isCustomFont: boolean; glyphCount: number }>;
+          };
+          for (const font of fonts) {
+            if (font.isCustomFont && BUNDLED_FONT_NAMES.some((n) => font.familyName.startsWith(n))) continue;
+            const samples = offenders.get(font.familyName) ?? new Set<string>();
+            if (samples.size < 5) samples.add(text.slice(0, 40));
+            offenders.set(font.familyName, samples);
+          }
+        } catch {
+          // Node detached (e.g. display:none); ignore.
+        }
+      }));
+    }
+    return [...offenders.entries()].map(([family, chars]) => ({
+      severity: 'error' as const,
+      code: 'fallback-font',
+      message: `Glyphs were drawn with the non-bundled system font "${family}" `
+        + `in: ${[...chars].map((s) => `"${s}"`).join(', ')}. `
+        + 'Output would differ between machines. Remove or replace those characters (emoji/symbols) in the source.',
+    }));
+  } finally {
+    await cdp.detach().catch(() => undefined);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+export interface RenderOptions {
+  /** Run the PDF layout check (default true). */
+  check?: boolean;
+  /** Write rasterized PDF pages to this directory. */
+  pagesDir?: string;
+  /** TOC heading ids (used to locate body pages). */
+  tocIds?: string[];
+}
+
+export interface RenderResult {
+  html: string;
+  pdf: Buffer;
+  issues: RenderIssue[];
+  analysis?: LayoutAnalysis;
+  pageCount: number;
+  pagePngs: string[];
+}
+
+async function printPdf(page: Page, meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'> & { language?: string }): Promise<Buffer> {
+  return page.pdf({
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: true,
+    headerTemplate: buildHeaderTemplate(meta.stage),
+    footerTemplate: buildFooterTemplate(meta),
+    tagged: true,
+    outline: true,
+    margin: {
+      top: `${PAGE_MARGIN_TOP_MM}mm`,
+      bottom: `${PAGE_MARGIN_BOTTOM_MM}mm`,
+      left: `${PAGE_MARGIN_SIDE_MM}mm`,
+      right: `${PAGE_MARGIN_SIDE_MM}mm`,
+    },
+  });
 }
 
 /**
- * Code blocks use `white-space: pre` (see styles.css) so a line is never
- * soft-wrapped by the browser. Chromium's print-to-PDF pipeline has no
- * concept of a "soft wrap": any visual line break it draws is baked into the
- * PDF's text layer as a hard line break, and `word-break` can split a break
- * mid-token. That means a wrapped code line pastes back as multiple broken
- * lines (or a word split in half) instead of the original single line.
- *
- * To preserve exact copy-paste fidelity, long lines are shrunk in-place
- * (font-size only, same technique as ensureCoverTitleFitsOneLine) until they
- * fit the block's width without wrapping, rather than letting them wrap.
- *
- * The measurement has to happen at the *printable* content width, not the
- * live viewport width: the `.content`/`.toc` side padding that carves out
- * the visible page margin only exists under `@media screen` (see
- * styles.css), and the `@page` margin used for print pagination is applied
- * by Chromium during the print pass itself, invisible to a plain
- * `getBoundingClientRect`/`clientWidth` read beforehand. Left unaccounted
- * for, blocks measure ~150px wider than what will actually be available at
- * print time, so lines that fit here still clip in the final PDF. The
- * viewport is temporarily narrowed to the real printable width for this
- * measurement and restored afterward.
+ * Renders the document once in Chromium and returns the PDF plus the HTML
+ * serialized from the *same* laid-out DOM (fitted tables, TOC page numbers),
+ * so both artifacts are identical in content.
  */
-export async function ensureCodeBlocksFitWithoutWrapping(page: Page): Promise<CodeBlockShrinkResult> {
-  const originalViewport = page.viewportSize();
-  await page.setViewportSize({ width: PRINTABLE_CONTENT_WIDTH_PX, height: originalViewport?.height ?? 1123 });
-
+export async function renderDocument(
+  htmlContent: string,
+  meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'> & { language?: string },
+  options: RenderOptions = {},
+): Promise<RenderResult> {
+  const issues: RenderIssue[] = [];
+  const browser = await chromium.launch({ headless: true });
   try {
-    return await page.evaluate(({ minFontPx, stepPx }) => {
-      const blocks = Array.from(document.querySelectorAll<HTMLElement>('pre'));
-      const stillOverflowing: string[] = [];
-      let shrunkCount = 0;
+    const page = await browser.newPage();
+    await page.emulateMedia({ media: 'print' });
+    await page.setViewportSize({ width: A4_WIDTH_PX, height: 1123 });
+    await page.setContent(htmlContent, { waitUntil: 'load' });
+    await waitForContentReady(page);
+    await ensureCoverTitleFitsOneLine(page);
 
-      for (const pre of blocks) {
-        let fontSize = parseFloat(getComputedStyle(pre).fontSize);
-        let guard = 0;
-        let shrunk = false;
-        while (pre.scrollWidth > pre.clientWidth + 1 && fontSize > minFontPx && guard < 400) {
-          fontSize -= stepPx;
-          pre.style.fontSize = `${fontSize}px`;
-          shrunk = true;
-          guard++;
-        }
-        if (shrunk) shrunkCount++;
-        if (pre.scrollWidth > pre.clientWidth + 1) {
-          stillOverflowing.push((pre.innerText || '').split('\n')[0]?.slice(0, 80) ?? '');
-        }
-      }
+    // Lay out body content at the exact printable text width.
+    await page.setViewportSize({ width: Math.round(CONTENT_WIDTH_PX), height: 1123 });
 
-      return { shrunkCount, stillOverflowing };
-    }, { minFontPx: MIN_CODE_FONT_PX, stepPx: CODE_FONT_STEP_PX });
+    const tables = await page.evaluate(fitTables);
+    for (const t of tables.filter((r) => r.overflow)) {
+      issues.push({
+        severity: 'error',
+        code: 'table-overflow',
+        message: `Table ${t.index + 1} ("${t.firstHeader.slice(0, 40)}") is wider than the page even with every cell wrapping. Reduce its columns.`,
+      });
+    }
+    for (const line of await page.evaluate(findOverflowingCode)) {
+      issues.push({ severity: 'error', code: 'code-overflow', message: `Code block still overflows the page: "${line}"` });
+    }
+    for (const what of await page.evaluate(findHorizontalOverflow)) {
+      issues.push({ severity: 'error', code: 'content-overflow', message: `Content wider than the text column: ${what}` });
+    }
+    if (options.check !== false) issues.push(...await findFallbackFonts(page));
+    const breakTargets = await page.evaluate(collectBreakTargets);
+
+    // Up to three passes so TOC page numbers settle.
+    let pdf = await printPdf(page, meta);
+    for (let pass = 0; pass < 3; pass += 1) {
+      const doc = await openPdf(pdf);
+      const numbers: Record<string, number> = {};
+      for (const h of await headingPositions(doc)) numbers[h.id] ??= h.page;
+      await doc.destroy();
+      const changed = await page.evaluate(applyTocPageNumbers, numbers);
+      if (!changed) break;
+      pdf = await printPdf(page, meta);
+    }
+
+    const html = `<!doctype html>\n${await page.evaluate(() => document.documentElement.outerHTML)}`;
+
+    const doc = await openPdf(pdf);
+    let analysis: LayoutAnalysis | undefined;
+    if (options.check !== false) {
+      analysis = await analyzePdf(doc, { breakTargets, tocIds: options.tocIds ?? [] });
+      issues.push(...analysis.issues);
+    }
+    const pagePngs = options.pagesDir ? await writePagePngs(doc, options.pagesDir) : [];
+    const pageCount: number = doc.numPages;
+    await doc.destroy();
+
+    return { html, pdf, issues, analysis, pageCount, pagePngs };
   } finally {
-    if (originalViewport) await page.setViewportSize(originalViewport);
+    await browser.close();
   }
 }
 
+/** Convenience wrapper: render and write only the PDF. */
 export async function generatePdf(
   htmlContent: string,
   outputPath: string,
-  meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'>,
-): Promise<void> {
+  meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'> & { language?: string },
+): Promise<RenderResult> {
+  const result = await renderDocument(htmlContent, meta, { check: false });
   await mkdir(dirname(outputPath), { recursive: true });
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const page = await browser.newPage();
-
-    await page.emulateMedia({ media: 'print' });
-    // A4 width at 96 CSS px/inch (210mm) so cover-title wrap checks match the
-    // actual print layout used by page.pdf({ format: 'A4' }).
-    await page.setViewportSize({ width: 794, height: 1123 });
-    await page.setContent(htmlContent, { waitUntil: 'load' });
-    await waitForContentReady(page);
-    await ensureCoverTitleFitsOneLine(page);
-    const codeShrink = await ensureCodeBlocksFitWithoutWrapping(page);
-    for (const line of codeShrink.stillOverflowing) {
-      console.warn(`Code line still exceeds page width at the minimum font size and may wrap: "${line}"`);
-    }
-
-    await page.pdf({
-      path: outputPath,
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      displayHeaderFooter: true,
-      headerTemplate: buildHeaderTemplate(meta.stage),
-      footerTemplate: buildFooterTemplate(meta),
-      tagged: true,
-      outline: true,
-      margin: {
-        top: '25mm',
-        bottom: '20mm',
-        left: '20mm',
-        right: '20mm',
-      },
-    });
-  } finally {
-    await browser.close();
-  }
+  await writeFile(outputPath, result.pdf);
+  return result;
 }
 
-export async function generateReviewShots(
-  htmlContent: string,
-  shotsDir: string,
-  meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'>,
-): Promise<string[]> {
-  await mkdir(shotsDir, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
-  const paths: string[] = [];
-  try {
-    const page = await browser.newPage();
-    await page.emulateMedia({ media: 'print' });
-
-    const a4WidthPx = 794;
-    const a4HeightPx = 1123;
-    const marginTopMm = 25;
-    const marginBottomMm = 20;
-    const printableHeightPx = a4HeightPx - Math.round(((marginTopMm + marginBottomMm) / 297) * a4HeightPx);
-
-    await page.setViewportSize({ width: a4WidthPx, height: printableHeightPx });
-    await page.setContent(htmlContent, { waitUntil: 'load' });
-    await waitForContentReady(page);
-    await ensureCoverTitleFitsOneLine(page);
-    await ensureCodeBlocksFitWithoutWrapping(page);
-
-    const totalHeight = await page.evaluate(() => document.body.scrollHeight);
-    const pageCount = Math.ceil(totalHeight / printableHeightPx);
-
-    for (let i = 0; i < pageCount; i++) {
-      const y = i * printableHeightPx;
-      await page.evaluate((yPos) => window.scrollTo(0, yPos), y);
-      await page.waitForTimeout(100);
-      const isLast = i === pageCount - 1;
-      const remaining = totalHeight - y;
-      const clipHeight = isLast && remaining < printableHeightPx ? remaining : printableHeightPx;
-      const filePath = join(shotsDir, `page-${String(i + 1).padStart(2, '0')}.png`);
-      await page.screenshot({
-        path: filePath,
-        clip: { x: 0, y: 0, width: a4WidthPx, height: clipHeight },
-        type: 'png',
-      });
-      paths.push(filePath);
-    }
-  } finally {
-    await browser.close();
-  }
-  return paths;
-}
-
-export async function generateAiReviewPackage(
-  htmlContent: string,
+export async function writeAiReviewPrompt(
   reviewDir: string,
-  meta: Pick<DocumentMeta, 'title' | 'customer' | 'stage' | 'copyrightYear'>,
-): Promise<{ shotsDir: string; promptPath: string; shotPaths: string[] }> {
-  const shotsDir = join(reviewDir, 'screenshots');
-  const shotPaths = await generateReviewShots(htmlContent, shotsDir, meta);
+  meta: Pick<DocumentMeta, 'title' | 'customer'>,
+  pagePngs: string[],
+): Promise<string> {
+  await mkdir(reviewDir, { recursive: true });
+  const files = pagePngs.map((p) => `screenshots/${basename(p)}`);
+  const prompt = `# PDF layout review
 
-  const shotFilenames = shotPaths.map((p) => `screenshots/${basename(p)}`);
-  const title = meta.title;
-  const customer = meta.customer;
-  const pageCount = shotPaths.length;
+The ${files.length} images below are the pages of the rendered PDF itself (rasterized from the PDF, so pagination is exact).
+The automated layout check (layout-report.json next to the PDF) has already verified page fill, orphan headings,
+overflow, unrendered Markdown markers, and fonts. Review what automation cannot judge.
 
-  const prompt = `# PDF 렌더링 미학 리뷰 요청
+- Title: ${meta.title}
+- Customer: ${meta.customer}
+- Pages: ${files.length}
 
-아래 스크린샷 ${pageCount}장은 MongoDB 컨설팅 리포트 PDF의 각 페이지를 캡처한 것입니다.
-Vision 능력을 가진 AI 모델이 아래 스크린샷들을 검토하고 미학적 품질을 평가해 주세요.
+For each page answer PASS or FAIL with a one-line reason for:
 
-## 문서 정보
-- 제목: ${title}
-- 고객사: ${customer}
-- 총 페이지 수: ${pageCount}
+1. Density — no avoidable empty bands; spacing between blocks is even.
+2. Tables — header distinct; short values on one line; only long prose/URIs wrap.
+3. Code — readable, forced line breaks are at sensible points.
+4. Hierarchy — H1/H2/H3 clearly distinct; badges, admonitions, Q&A render as boxes.
+5. Text — no literal \`**\`, \`__\`, \`[!NOTE]\`, or raw HTML visible; no missing glyphs.
+6. Cover (page 1) and TOC (page 2) — title on one line; TOC page numbers present and aligned.
 
-## 평가 기준
+Finish with the top 3 issues to fix in the Markdown source (never in the generated files).
 
-각 페이지를 다음 기준으로 1-5점 척도로 평가하고, 구체적 개선점을 제시해 주세요.
+## Pages
 
-### 1. 레이아웃 & 여백 (Layout & Whitespace)
-- 페이지 여백이 균형 잡혀 있는가?
-- 콘텐츠가 페이지에 과도하게 빽빽하거나 너무 여백이 많지 않은가?
-- 헤딩과 본문 사이 간격이 적절한가?
-
-### 2. 타이포그래피 (Typography)
-- 헤딩 계층(h1/h2/h3)이 시각적으로 명확히 구분되는가?
-- 폰트 크기가 본문 대비 적절한 비율을 유지하는가?
-- 줄 간격(line-height)이 읽기 편한가?
-- 코드 블록과 본문의 시각적 구분이 명확한가?
-
-### 3. 표 & 이미지 (Tables & Images)
-- 표가 페이지 너비에 맞게 렌더링되는가?
-- 표 헤더 행이 명확히 구분되는가?
-- 이미지가 적절한 크기와 여백을 가지는가?
-- 표나 이미지가 페이지 경계에서 잘리는가?
-
-### 4. 페이지 분할 (Page Break)
-- 헤딩이 페이지 하단에 혼자 남아있지 않은가? (orphan heading)
-- 표가 페이지 경계에서 헤더 없이 이어지지 않는가?
-- 단락이 페이지 경계에서 자연스럽게 나뉘는가?
-
-### 5. 표지 (Cover Page) — page-01만 해당
-- 제목이 한 줄에 표시되는가?
-- 브랜드, 제목, 부제, 메타 정보의 시각적 위계가 명확한가?
-- 전체적인 컬러와 대비가 조화로운가?
-
-### 6. 목차 (Table of Contents) — page-02만 해당
-- 항목과 페이지 번호 사이 점 리더가 정렬되어 있는가?
-- 헤딩 계층이 들여쓰기로 명확히 표현되는가?
-
-## 출력 형식
-
-각 페이지별로 다음 형식으로 평가해 주세요:
-
-\`\`\`
-## Page N
-- Layout: X/5 — (한줄 코멘트)
-- Typography: X/5 — (한줄 코멘트)
-- Tables/Images: X/5 — (한줄 코멘트 또는 N/A)
-- Page Break: X/5 — (한줄 코멘트)
-- 개선 제안: (구체적 액션 아이템 또는 "이슈 없음")
-\`\`\`
-
-마지막에 전체 요약과 우선 수정이 필요한 상위 3개 이슈를 제시해 주세요.
-
-## 스크린샷 파일 목록
-
-${shotFilenames.map((f, i) => `- Page ${String(i + 1).padStart(2, '0')}: ${f}`).join('\n')}
+${files.map((f, i) => `- Page ${String(i + 1).padStart(2, '0')}: ${f}`).join('\n')}
 `;
-
   const promptPath = join(reviewDir, 'REVIEW_PROMPT.md');
   await writeFile(promptPath, prompt, 'utf-8');
-
-  return { shotsDir, promptPath, shotPaths };
+  return promptPath;
 }
